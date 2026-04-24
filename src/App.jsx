@@ -70,7 +70,7 @@ export default function App() {
   const [personalLoan, setPersonalLoan] = useState(0);
   const [insurance, setInsurance] = useState(2000);
   const [livingExpense, setLivingExpense] = useState(25000);
-  const [utilities, setUtilities] = useState(3000);
+  const [utilities, setUtilities] = useState(1000);
 
   const [currentCash, setCurrentCash] = useState(300000);
   const [cashGoal, setCashGoal] = useState(1000000);
