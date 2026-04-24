@@ -226,3 +226,17 @@ body {
     grid-template-columns: 1fr;
   }
 }
+
+.seo-content {
+  background: white;
+  padding: 20px;
+  margin-bottom: 24px;
+  border-radius: 16px;
+  line-height: 1.8;
+  font-size: 14px;
+  color: #444;
+}
+
+.seo-content h2 {
+  margin-bottom: 12px;
+}
