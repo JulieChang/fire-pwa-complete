@@ -1,0 +1,236 @@
+:root {
+  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Noto Sans TC",
+    sans-serif;
+  color: #0f172a;
+  background: #f3f6fb;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+.app {
+  padding: 28px;
+  max-width: 1440px;
+  margin: auto;
+}
+
+.hero {
+  background: #111c30;
+  color: white;
+  border-radius: 28px;
+  padding: 40px;
+  display: flex;
+  justify-content: space-between;
+  gap: 32px;
+  align-items: center;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.18);
+}
+
+.eyebrow {
+  color: #93c5fd;
+  letter-spacing: 0.18em;
+  font-weight: 800;
+}
+
+h1 {
+  font-size: clamp(40px, 6vw, 72px);
+  margin: 8px 0;
+}
+
+.subtitle {
+  font-size: 22px;
+  color: #cbd5e1;
+}
+
+.heroCard {
+  background: rgba(255, 255, 255, 0.13);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 26px;
+  padding: 32px;
+  min-width: 280px;
+}
+
+.heroCard span,
+.card span {
+  color: #64748b;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.heroCard span {
+  color: #cbd5e1;
+}
+
+.heroCard strong {
+  display: block;
+  margin-top: 12px;
+  font-size: 36px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 22px;
+}
+
+.cards {
+  margin: 28px 0;
+}
+
+.card,
+.panel {
+  background: white;
+  border-radius: 24px;
+  padding: 28px;
+  border: 1px solid #dbe4f0;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.05);
+}
+
+.card strong {
+  display: block;
+  margin-top: 12px;
+  font-size: 32px;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 22px;
+  align-items: start;
+}
+
+h2 {
+  margin: 6px 0 20px;
+  font-size: 24px;
+}
+
+.inputBox {
+  display: block;
+  margin-bottom: 16px;
+}
+
+.inputBox span {
+  display: block;
+  color: #475569;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.inputRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-radius: 14px;
+  padding: 10px 14px;
+}
+
+.inputRow input {
+  width: 100%;
+  border: none;
+  background: transparent;
+  font-size: 20px;
+  font-weight: 800;
+  outline: none;
+  color: #0f172a;
+}
+
+.inputRow em {
+  font-style: normal;
+  color: #64748b;
+  font-weight: 700;
+}
+
+.metric,
+.freedom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #f8fafc;
+  border-radius: 18px;
+  padding: 18px;
+  margin-bottom: 16px;
+}
+
+.metric strong,
+.freedom strong {
+  font-size: 28px;
+}
+
+.bar {
+  height: 18px;
+  background: #e2e8f0;
+  border-radius: 999px;
+  overflow: hidden;
+  margin-bottom: 18px;
+}
+
+.bar div {
+  height: 100%;
+  background: linear-gradient(90deg, #2563eb, #60a5fa);
+  border-radius: 999px;
+}
+
+.note {
+  line-height: 1.7;
+  color: #475569;
+  background: #f8fafc;
+  border-radius: 18px;
+  padding: 18px;
+  margin-bottom: 28px;
+}
+
+.good {
+  color: #16a34a;
+}
+
+.danger {
+  color: #ef4444;
+}
+
+button {
+  width: 100%;
+  border: none;
+  border-radius: 18px;
+  padding: 18px;
+  background: #111c30;
+  color: white;
+  font-size: 18px;
+  font-weight: 800;
+}
+
+@media (max-width: 1000px) {
+  .hero,
+  .layout {
+    grid-template-columns: 1fr;
+    display: grid;
+  }
+
+  .grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .hero {
+    padding: 32px;
+  }
+}
+
+@media (max-width: 640px) {
+  .app {
+    padding: 16px;
+  }
+
+  .grid {
+    grid-template-columns: 1fr;
+  }
+
+  .hero {
+    padding: 26px;
+  }
+}
