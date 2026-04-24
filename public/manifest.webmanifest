@@ -1,0 +1,10 @@
+{
+  "name": "Financial Freedom Planner",
+  "short_name": "Planner",
+  "description": "A simple personal finance planning PWA.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f8fafc",
+  "theme_color": "#0f172a",
+  "icons": []
+}
