@@ -211,6 +211,37 @@ export default function App() {
           </p>
         </div>
       </section>
+      <section className="hero">
+  <div>
+    <p className="eyebrow">Financial Freedom Planner</p>
+    <h1>每月資金分配引擎</h1>
+    <p>
+      依照收入、固定支出、現金水位、旅遊預算與投資上限，自動產出每月分配建議。
+    </p>
+  </div>
+</section>
+      
+<section className="seo-content">
+  <h2>免費財務規劃工具｜現金水位與投資配置一次搞定</h2>
+  <p>
+    這是一個專為台灣上班族設計的免費財務規劃工具，透過簡單輸入每月收入、
+    固定支出與現金資產，即可自動計算出最適合你的資金分配策略。
+    本工具整合現金流管理、投資配置與旅遊預算規劃，幫助你用更系統化的方式
+    管理財務，而不是單純記帳。
+  </p>
+  <p>
+    許多人在理財時常遇到的問題是，不知道現金應該保留多少才安全，
+    或是每月應該投入多少資金進行ETF或股票投資。本工具透過「現金安全水位」
+    概念，計算你目前的現金可支撐月數，並依據你的財務狀況，自動給出
+    投資、現金與消費的最佳分配比例。
+  </p>
+  <p>
+    此外，也結合年度旅遊預算管理，讓你在追求財務自由的同時，
+    不犧牲生活品質。無論你是剛開始投資的新手，或是已經有一定資產規模的
+    投資者，都可以透過這個工具持續優化你的資金配置策略，
+    朝向財務自由（FIRE）目標前進。
+  </p>
+</section>
 
       <section className="dashboard">
         <MetricCard title="每月可分配金額" value={formatNTD(result.available)} />
