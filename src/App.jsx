@@ -64,18 +64,18 @@ function AllocationCard({ title, amount, note }) {
 }
 
 export default function App() {
-  const [monthlyIncome, setMonthlyIncome] = useState(151000);
+  const [monthlyIncome, setMonthlyIncome] = useState(100000);
 
-  const [mortgage, setMortgage] = useState(27154);
-  const [personalLoan, setPersonalLoan] = useState(33025);
-  const [insurance, setInsurance] = useState(24587);
-  const [livingExpense, setLivingExpense] = useState(35000);
-  const [utilities, setUtilities] = useState(5000);
+  const [mortgage, setMortgage] = useState(25000);
+  const [personalLoan, setPersonalLoan] = useState(0);
+  const [insurance, setInsurance] = useState(2000);
+  const [livingExpense, setLivingExpense] = useState(25000);
+  const [utilities, setUtilities] = useState(3000);
 
   const [currentCash, setCurrentCash] = useState(300000);
   const [cashGoal, setCashGoal] = useState(1000000);
 
-  const [annualTravelBudget, setAnnualTravelBudget] = useState(70000);
+  const [annualTravelBudget, setAnnualTravelBudget] = useState(50000);
   const [currentTravelFund, setCurrentTravelFund] = useState(0);
 
   const [currentInvestmentAsset, setCurrentInvestmentAsset] = useState(0);
