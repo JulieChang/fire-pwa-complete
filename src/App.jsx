@@ -192,9 +192,9 @@ export default function App() {
 
         <div className="panel">
           <h2>ETF 投資設定</h2>
-          <Input label="006208 每月投入" value={data.etf006208} onChange={(v) => update("etf006208", v)} />
-          <Input label="00918 每月投入" value={data.etf00918} onChange={(v) => update("etf00918", v)} />
-          <Input label="00982A 每月投入" value={data.etf00982A} onChange={(v) => update("etf00982A", v)} />
+          <Input label="第一檔 每月投入" value={data.etf006208} onChange={(v) => update("etf006208", v)} />
+          <Input label="第二檔 每月投入" value={data.etf00918} onChange={(v) => update("etf00918", v)} />
+          <Input label="第三檔 每月投入" value={data.etf00982A} onChange={(v) => update("etf00982A", v)} />
 
           <h2>旅遊與現金水位</h2>
           <Input label="年度旅遊預算" value={data.travelBudget} onChange={(v) => update("travelBudget", v)} />
