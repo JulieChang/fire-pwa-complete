@@ -208,18 +208,11 @@ export default function App() {
           <h1>每月資金分配引擎</h1>
           <p>
             依照收入、固定支出、現金水位、旅遊預算與投資上限，自動產出每月分配建議。
+            這是一個免費的財務分配工具，幫助你自動計算：✔ 現金安全水位✔ 每月投資配置✔ 旅遊預算規劃
+            適合：月薪族 / ETF 投資者 / 想達成財務自由的人
           </p>
         </div>
       </section>
-      <section className="hero">
-  <div>
-    <p className="eyebrow">Financial Freedom Planner</p>
-    <h1>每月資金分配引擎</h1>
-    <p>
-      依照收入、固定支出、現金水位、旅遊預算與投資上限，自動產出每月分配建議。
-    </p>
-  </div>
-</section>
       
 <section className="seo-content">
   <h2>免費財務規劃工具｜現金水位與投資配置一次搞定</h2>
