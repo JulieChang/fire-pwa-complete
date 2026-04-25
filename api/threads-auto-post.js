@@ -84,8 +84,8 @@ ${websiteUrl}
       });
     }
 
-    const createContainerUrl = `https://graph.threads.net/v1.0/${THREADS_USER_ID}/threads`;
-
+    const createContainerUrl = `https://graph.threads.net/v1.0/me/threads`;
+    
     const containerParams = new URLSearchParams();
     containerParams.append("media_type", "TEXT");
     containerParams.append("text", postText);
