@@ -1,3 +1,4 @@
+import GrowthAgent from "./GrowthAgent";
 const isDev = window.location.search.includes("dev");
 {isDev && <GrowthAgent />}
 
