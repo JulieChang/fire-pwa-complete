@@ -1,3 +1,6 @@
+const isDev = window.location.search.includes("dev");
+{isDev && <GrowthAgent />}
+
 import React, { useMemo, useState } from "react";
 import "./App.css";
 
