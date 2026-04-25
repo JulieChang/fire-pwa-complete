@@ -106,8 +106,8 @@ ${websiteUrl}
       });
     }
 
-    const publishUrl = `https://graph.threads.net/v1.0/${THREADS_USER_ID}/threads_publish`;
-
+    const publishUrl = `https://graph.threads.net/v1.0/me/threads_publish`;
+    
     const publishParams = new URLSearchParams();
     publishParams.append("creation_id", containerData.id);
     publishParams.append("access_token", THREADS_ACCESS_TOKEN);
