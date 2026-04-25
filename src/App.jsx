@@ -387,7 +387,8 @@ export default function App() {
           />
         </div>
       </section>
-      // <GrowthAgent />
+      const showAgent = false;
+      {showAgent && <GrowthAgent />}
     </main>
   );
 }
