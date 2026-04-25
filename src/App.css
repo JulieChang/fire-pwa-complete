@@ -325,3 +325,68 @@ body {
   color: #1f2937;
   font-size: 15px;
 }
+/* =========================
+   Share Panel（分享區塊）
+========================= */
+
+.share-section {
+  text-align: center;
+}
+
+.share-description {
+  color: #64748b;
+  margin-bottom: 20px;
+}
+
+.share-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: center;
+}
+
+.share-buttons a,
+.share-buttons button {
+  border: none;
+  border-radius: 999px;
+  padding: 12px 18px;
+  background: #111827;
+  color: white;
+  font-size: 14px;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.share-buttons a:hover,
+.share-buttons button:hover {
+  opacity: 0.85;
+}
+
+/* =========================
+   Print（PDF輸出優化）
+========================= */
+
+@media print {
+  .share-section,
+  .form-grid {
+    display: none;
+  }
+
+  body {
+    background: white;
+  }
+
+  .app {
+    padding: 0;
+  }
+
+  .section,
+  .dashboard,
+  .hero,
+  .seo-content {
+    box-shadow: none !important;
+    border: 1px solid #e5e7eb;
+    break-inside: avoid;
+  }
+}
