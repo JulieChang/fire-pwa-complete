@@ -1,11 +1,3 @@
-<button
-  onClick={() => {
-    window.location.href =
-      "https://threads.net/oauth/authorize?client_id=946279961323330&redirect_uri=https://finops-planner.vercel.app/api/threads-token&scope=threads_basic,threads_content_publish&response_type=code";
-  }}
->
-  連接 Threads（取得授權）
-</button>
 import { useState } from "react";
 
 export default function GrowthAgent() {
@@ -165,6 +157,16 @@ ${website}
 
   return (
     <div className="agent-card">
+      {/* 👉 Threads 授權按鈕（正確位置） */}
+      <button
+        onClick={() => {
+          window.location.href =
+            "https://threads.net/oauth/authorize?client_id=946279961323330&redirect_uri=https://finops-planner.vercel.app/api/threads-token&scope=threads_basic,threads_content_publish&response_type=code";
+        }}
+      >
+        連接 Threads（取得授權）
+      </button>
+      
       <h2>AI Growth Agent</h2>
       <p className="agent-subtitle">
         每日自動產出 FinOps Planner 推廣內容，協助提升網站曝光。
