@@ -386,7 +386,8 @@ export default function App() {
           />
         </div>
       </section>
+      <GrowthAgent />
     </main>
   );
 }
-<GrowthAgent />
+
