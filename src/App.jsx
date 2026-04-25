@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from "react";
+import { SpeedInsights } from "@vercel/speed-insights/react";
 import GrowthAgent from "./GrowthAgent";
 import "./App.css";
 
@@ -219,7 +220,7 @@ export default function App() {
             幫助你自動計算：✔ 現金安全水位✔ 每月投資配置✔ 旅遊預算規劃
           </p>  
            <p>
-            適合：月薪族 / ETF 投資者 / 想達成財務自由的人
+            適合：月薪族 / ETF 投資者 / 想達成財務自由的��
           </p>
         </div>
       </section>
@@ -236,7 +237,7 @@ export default function App() {
     許多人在理財時常遇到的問題是，不知道現金應該保留多少才安全，
     或是每月應該投入多少資金進行ETF或股票投資。本工具透過「現金安全水位」
     概念，計算你目前的現金可支撐月數，並依據你的財務狀況，自動給出
-    投資、現金與消費的最佳分配比例。
+    投資、現金與消費的最佳分配比��。
   </p>
   <p>
     此外，也結合年度旅遊預算管理，讓你在追求財務自由的同時，
@@ -391,6 +392,7 @@ export default function App() {
           />
         </div>
       </section>
+      <SpeedInsights />
     </main>
   );
 }
