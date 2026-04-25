@@ -1,9 +1,8 @@
-import GrowthAgent from "./GrowthAgent";
-const isDev = window.location.search.includes("dev");
-{isDev && <GrowthAgent />}
-
 import React, { useMemo, useState } from "react";
+import GrowthAgent from "./GrowthAgent";
 import "./App.css";
+
+const isDev = window.location.search.includes("dev");
 
 const formatNTD = (value) => {
   const number = Number(value) || 0;
@@ -208,6 +207,9 @@ export default function App() {
     <main className="app">
       <section className="hero">
         <div>
+          {/* 🔥 Growth AI Agent */}
+          {isDev && <GrowthAgent />}
+          
           <p className="eyebrow">Financial Freedom Planner</p>
           <h1>每月資金分配引擎</h1>
           <p>
