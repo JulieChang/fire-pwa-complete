@@ -1,20 +1,3 @@
-import { useState } from "react";
-import GrowthAgent from "./GrowthAgent";
-
-function App() {
-  const [showAgent, setShowAgent] = useState(false);
-
-  return (
-    <>
-      <button onClick={() => setShowAgent(!showAgent)}>
-        {showAgent ? "隱藏 AI Agent" : "開啟 AI Agent"}
-      </button>
-
-      {showAgent && <GrowthAgent />}
-    </>
-  );
-}
-
 import React, { useMemo, useState } from "react";
 import "./App.css";
 
