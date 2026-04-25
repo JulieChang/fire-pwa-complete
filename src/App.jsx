@@ -1,4 +1,5 @@
 import GrowthAgent from "./GrowthAgent";
+
 import React, { useMemo, useState } from "react";
 import "./App.css";
 
@@ -386,7 +387,7 @@ export default function App() {
           />
         </div>
       </section>
-      <GrowthAgent />
+      // <GrowthAgent />
     </main>
   );
 }
