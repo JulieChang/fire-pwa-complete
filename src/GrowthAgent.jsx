@@ -1,3 +1,11 @@
+<button
+  onClick={() => {
+    window.location.href =
+      "https://threads.net/oauth/authorize?client_id=946279961323330&redirect_uri=https://finops-planner.vercel.app/api/threads-token&scope=threads_basic,threads_content_publish&response_type=code";
+  }}
+>
+  連接 Threads（取得授權）
+</button>
 import { useState } from "react";
 
 export default function GrowthAgent() {
