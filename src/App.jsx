@@ -143,59 +143,35 @@ ${pageUrl}`;
 export default function App() {
   const [monthlyIncome, setMonthlyIncome] = useState(100000);
   const [annualBonus, setAnnualBonus] = useState(0);
-
   const [mortgage, setMortgage] = useState(25000);
   const [personalLoan, setPersonalLoan] = useState(0);
   const [insurance, setInsurance] = useState(2000);
   const [livingExpense, setLivingExpense] = useState(25000);
   const [utilities, setUtilities] = useState(1000);
-
   const [currentCash, setCurrentCash] = useState(300000);
   const [cashGoal, setCashGoal] = useState(1000000);
-
   const [annualTravelBudget, setAnnualTravelBudget] = useState(50000);
   const [currentTravelFund, setCurrentTravelFund] = useState(0);
-
   const [currentInvestmentAsset, setCurrentInvestmentAsset] = useState(0);
   const [minInvestment, setMinInvestment] = useState(12000);
   const [maxInvestment, setMaxInvestment] = useState(50000);
   const [annualReturnRate, setAnnualReturnRate] = useState(6);
-
-  const [retirementMonthlyCashflow, setRetirementMonthlyCashflow] =
-    useState(60000);
+  const [retirementMonthlyCashflow, setRetirementMonthlyCashflow] = useState(60000);
 
   const result = useMemo(() => {
-    const fixedExpense =
-      mortgage + personalLoan + insurance + livingExpense + utilities;
-
+    const fixedExpense = mortgage + personalLoan + insurance + livingExpense + utilities;
     const monthlyBonusEquivalent = annualBonus / 12;
     const monthlyTotalIncome = monthlyIncome + monthlyBonusEquivalent;
     const available = monthlyTotalIncome - fixedExpense;
-
     const necessaryExpense = fixedExpense;
-    const cashRunwayMonths =
-      necessaryExpense > 0 ? currentCash / necessaryExpense : 0;
-
+    const cashRunwayMonths = necessaryExpense > 0 ? currentCash / necessaryExpense : 0;
     const sixMonthCashTarget = necessaryExpense * 6;
     const cashGapToSixMonths = Math.max(sixMonthCashTarget - currentCash, 0);
-
-    const suggestedMonthlyCashTopUp =
-      cashGapToSixMonths > 0 ? cashGapToSixMonths / 12 : 0;
-
-    const cashProgress =
-      sixMonthCashTarget > 0 ? (currentCash / sixMonthCashTarget) * 100 : 0;
-
-    const travelProgress =
-      annualTravelBudget > 0
-        ? (currentTravelFund / annualTravelBudget) * 100
-        : 100;
-
+    const suggestedMonthlyCashTopUp = cashGapToSixMonths > 0 ? cashGapToSixMonths / 12 : 0;
+    const cashProgress = sixMonthCashTarget > 0 ? (currentCash / sixMonthCashTarget) * 100 : 0;
+    const travelProgress = annualTravelBudget > 0 ? (currentTravelFund / annualTravelBudget) * 100 : 100;
     const remainingMonths = Math.max(12 - new Date().getMonth(), 1);
-
-    const requiredMonthlyTravelSaving = Math.max(
-      (annualTravelBudget - currentTravelFund) / remainingMonths,
-      0
-    );
+    const requiredMonthlyTravelSaving = Math.max((annualTravelBudget - currentTravelFund) / remainingMonths, 0);
 
     let cashAllocation = 0;
     let travelAllocation = 0;
@@ -240,8 +216,7 @@ export default function App() {
 
     if (cashRunwayMonths < 3) {
       cashStatus = "危險";
-      advice =
-        "現金水位低於 3 個月，建議暫緩增加風險性投資，優先補足緊急預備金。";
+      advice = "現金水位低於 3 個月，建議暫緩增加風險性投資，優先補足緊急預備金。";
     } else if (cashRunwayMonths < 6) {
       cashStatus = "偏低";
       advice = "現金水位低於 6 個月，建議提高現金配置，先補足安全水位。";
@@ -255,36 +230,24 @@ export default function App() {
     const projectedInvestment =
       monthlyReturnRate > 0
         ? currentInvestmentAsset * Math.pow(1 + monthlyReturnRate, 12) +
-          investmentAllocation *
-            ((Math.pow(1 + monthlyReturnRate, 12) - 1) / monthlyReturnRate)
+          investmentAllocation * ((Math.pow(1 + monthlyReturnRate, 12) - 1) / monthlyReturnRate)
         : currentInvestmentAsset + investmentAllocation * 12;
 
     const financialFreedomTarget = retirementMonthlyCashflow * 12 * 25;
-
-    const financialFreedomGap = Math.max(
-      financialFreedomTarget - currentInvestmentAsset,
-      0
-    );
-
+    const financialFreedomGap = Math.max(financialFreedomTarget - currentInvestmentAsset, 0);
     const financialFreedomProgress =
-      financialFreedomTarget > 0
-        ? (currentInvestmentAsset / financialFreedomTarget) * 100
-        : 0;
+      financialFreedomTarget > 0 ? (currentInvestmentAsset / financialFreedomTarget) * 100 : 0;
 
     let investmentAdvice = "";
 
     if (cashRunwayMonths < 6) {
-      investmentAdvice =
-        "目前建議以補強現金水位為優先，投資維持最低定期定額即可。";
+      investmentAdvice = "目前建議以補強現金水位為優先，投資維持最低定期定額即可。";
     } else if (financialFreedomProgress < 25) {
-      investmentAdvice =
-        "目前距離財務自由目標仍遠，建議以長期成長型資產為主，例如大盤型 ETF 或核心股票配置。";
+      investmentAdvice = "目前距離財務自由目標仍遠，建議以長期成長型資產為主，例如大盤型 ETF 或核心股票配置。";
     } else if (financialFreedomProgress < 60) {
-      investmentAdvice =
-        "已進入資產累積期，建議維持核心投資，同時控制單一標的集中風險。";
+      investmentAdvice = "已進入資產累積期，建議維持核心投資，同時控制單一標的集中風險。";
     } else {
-      investmentAdvice =
-        "財務自由進度已具規模，建議逐步提高現金流型資產與防禦型配置。";
+      investmentAdvice = "財務自由進度已具規模，建議逐步提高現金流型資產與防禦型配置。";
     }
 
     return {
@@ -339,6 +302,12 @@ export default function App() {
 
           <h1>個人財務管理工具｜用理財規劃做好現金流管理</h1>
 
+          <div style={{ marginTop: "20px", marginBottom: "24px" }}>
+            <a href="#calculator" className="cta-button">
+              👉 開始試算我的財務狀況（免費）
+            </a>
+          </div>
+
           <p>
             想知道財務自由怎麼開始？FinOps Planner 是一個免費個人財務管理工具，
             幫助你用數據計算每月存錢比例、現金安全月數、投資配置與財務自由缺口。
@@ -390,7 +359,7 @@ export default function App() {
         </p>
       </section>
 
-      <section className="dashboard">
+      <section id="calculator" className="dashboard">
         <MetricCard
           title="每月總收入"
           value={formatNTD(result.monthlyTotalIncome)}
@@ -406,14 +375,8 @@ export default function App() {
       </section>
 
       <section className="dashboard">
-        <MetricCard
-          title="6 個月現金目標"
-          value={formatNTD(result.sixMonthCashTarget)}
-        />
-        <MetricCard
-          title="距離 6 個月水位還差"
-          value={formatNTD(result.cashGapToSixMonths)}
-        />
+        <MetricCard title="6 個月現金目標" value={formatNTD(result.sixMonthCashTarget)} />
+        <MetricCard title="距離 6 個月水位還差" value={formatNTD(result.cashGapToSixMonths)} />
         <MetricCard
           title="建議每月補現金"
           value={formatNTD(result.suggestedMonthlyCashTopUp)}
@@ -428,21 +391,9 @@ export default function App() {
       <section className="section">
         <h2>本月建議分配</h2>
         <div className="allocation-grid">
-          <AllocationCard
-            title="建議補現金"
-            amount={result.cashAllocation}
-            note="優先維持 6 個月安全水位"
-          />
-          <AllocationCard
-            title="建議旅遊基金"
-            amount={result.travelAllocation}
-            note="追蹤年度旅遊預算"
-          />
-          <AllocationCard
-            title="建議股票投資"
-            amount={result.investmentAllocation}
-            note="依最低與最高投資上限控管"
-          />
+          <AllocationCard title="建議補現金" amount={result.cashAllocation} note="優先維持 6 個月安全水位" />
+          <AllocationCard title="建議旅遊基金" amount={result.travelAllocation} note="追蹤年度旅遊預算" />
+          <AllocationCard title="建議股票投資" amount={result.investmentAllocation} note="依最低與最高投資上限控管" />
         </div>
         <div className="advice-box">{result.advice}</div>
       </section>
@@ -451,44 +402,24 @@ export default function App() {
         <div>
           <h2>現金安全水位追蹤</h2>
           <ProgressBar value={result.cashProgress} />
-          <p className="progress-text">
-            6 個月現金目標達成率：{clamp(result.cashProgress).toFixed(1)}%
-          </p>
-          <p className="progress-text">
-            目標現金水位：{formatNTD(result.sixMonthCashTarget)}
-          </p>
+          <p className="progress-text">6 個月現金目標達成率：{clamp(result.cashProgress).toFixed(1)}%</p>
+          <p className="progress-text">目標現金水位：{formatNTD(result.sixMonthCashTarget)}</p>
         </div>
 
         <div>
           <h2>旅遊預算追蹤</h2>
           <ProgressBar value={result.travelProgress} />
-          <p className="progress-text">
-            旅遊預算達成率：{clamp(result.travelProgress).toFixed(1)}%
-          </p>
-          <p className="progress-text">
-            建議每月旅遊沉澱：{formatNTD(result.requiredMonthlyTravelSaving)}
-          </p>
+          <p className="progress-text">旅遊預算達成率：{clamp(result.travelProgress).toFixed(1)}%</p>
+          <p className="progress-text">建議每月旅遊沉澱：{formatNTD(result.requiredMonthlyTravelSaving)}</p>
         </div>
       </section>
 
       <section className="section">
         <h2>退休現金流與財務自由推估</h2>
         <div className="allocation-grid">
-          <AllocationCard
-            title="財務自由目標資產"
-            amount={result.financialFreedomTarget}
-            note="以 25 倍年支出估算"
-          />
-          <AllocationCard
-            title="目前還差"
-            amount={result.financialFreedomGap}
-            note="目標資產 - 目前投資資產"
-          />
-          <AllocationCard
-            title="12 個月後投資資產預估"
-            amount={result.projectedInvestment}
-            note="依目前每月投資與年化報酬率估算"
-          />
+          <AllocationCard title="財務自由目標資產" amount={result.financialFreedomTarget} note="以 25 倍年支出估算" />
+          <AllocationCard title="目前還差" amount={result.financialFreedomGap} note="目標資產 - 目前投資資產" />
+          <AllocationCard title="12 個月後投資資產預估" amount={result.projectedInvestment} note="依目前每月投資與年化報酬率估算" />
         </div>
         <div className="advice-box">{result.investmentAdvice}</div>
       </section>
@@ -512,126 +443,70 @@ export default function App() {
       </section>
 
       <section className="seo-content">
-  <h2>常見問題（FAQ）</h2>
+        <h2>個人財務管理常見問題 FAQ</h2>
 
-  <h3>個人財務管理應該從哪裡開始？</h3>
-  <p>
-    建議先從現金流管理開始，了解每月收入與固定支出，確保至少 3–6 個月的現金安全水位，
-    再逐步建立投資與存錢比例。
-  </p>
+        <h3>個人財務管理應該從哪裡開始？</h3>
+        <p>
+          建議先從現金流管理開始，了解每月收入與固定支出，確保至少 3–6 個月的現金安全水位，
+          再逐步建立投資與存錢比例。
+        </p>
 
-  <h3>理財規劃一定要記帳嗎？</h3>
-  <p>
-    記帳可以幫助了解支出，但更重要的是建立資金分配策略。
-    本工具著重在「如何分配錢」，而不只是記錄花費。
-  </p>
+        <h3>理財規劃一定要記帳嗎？</h3>
+        <p>
+          記帳可以幫助了解支出，但更重要的是建立資金分配策略。
+          本工具著重在「如何分配錢」，而不只是記錄花費。
+        </p>
 
-  <h3>每月存錢比例應該多少？</h3>
-  <p>
-    一般建議至少 20%，若希望加速累積資產可以提高到 30%–40%。
-    但最佳比例應依個人收入與支出結構調整。
-  </p>
+        <h3>每月存錢比例應該多少？</h3>
+        <p>
+          一般建議至少 20%，若希望加速累積資產可以提高到 30%–40%。
+          但最佳比例應依個人收入與支出結構調整。
+        </p>
 
-  <h3>財務自由怎麼開始？</h3>
-  <p>
-    財務自由的第一步是建立穩定現金流與儲蓄習慣，
-    接著透過長期投資累積資產，最終讓資產產生的現金流覆蓋生活支出。
-  </p>
+        <h3>財務自由怎麼開始？</h3>
+        <p>
+          財務自由的第一步是建立穩定現金流與儲蓄習慣，
+          接著透過長期投資累積資產，最終讓資產產生的現金流覆蓋生活支出。
+        </p>
 
-  <h3>這個工具適合新手嗎？</h3>
-  <p>
-    非常適合。本工具將個人財務管理拆解為簡單步驟，
-    即使沒有理財經驗也可以快速上手。
-  </p>
-</section>
+        <h3>這個工具適合新手嗎？</h3>
+        <p>
+          非常適合。本工具將個人財務管理拆解為簡單步驟，
+          即使沒有理財經驗也可以快速上手。
+        </p>
+      </section>
+
       <section className="form-grid">
         <div className="form-section">
           <h2>收入設定</h2>
-          <InputCard
-            label="每月收入"
-            value={monthlyIncome}
-            onChange={setMonthlyIncome}
-          />
-          <InputCard
-            label="每年獎金收入"
-            value={annualBonus}
-            onChange={setAnnualBonus}
-          />
+          <InputCard label="每月收入" value={monthlyIncome} onChange={setMonthlyIncome} />
+          <InputCard label="每年獎金收入" value={annualBonus} onChange={setAnnualBonus} />
         </div>
 
         <div className="form-section">
           <h2>固定支出</h2>
           <InputCard label="房貸" value={mortgage} onChange={setMortgage} />
-          <InputCard
-            label="信貸"
-            value={personalLoan}
-            onChange={setPersonalLoan}
-          />
+          <InputCard label="信貸" value={personalLoan} onChange={setPersonalLoan} />
           <InputCard label="保險" value={insurance} onChange={setInsurance} />
-          <InputCard
-            label="生活費"
-            value={livingExpense}
-            onChange={setLivingExpense}
-          />
-          <InputCard
-            label="水電瓦斯網路"
-            value={utilities}
-            onChange={setUtilities}
-          />
+          <InputCard label="生活費" value={livingExpense} onChange={setLivingExpense} />
+          <InputCard label="水電瓦斯網路" value={utilities} onChange={setUtilities} />
         </div>
 
         <div className="form-section">
           <h2>旅遊與現金水位</h2>
-          <InputCard
-            label="年度旅遊預算"
-            value={annualTravelBudget}
-            onChange={setAnnualTravelBudget}
-          />
-          <InputCard
-            label="目前旅遊基金"
-            value={currentTravelFund}
-            onChange={setCurrentTravelFund}
-          />
-          <InputCard
-            label="目前現金"
-            value={currentCash}
-            onChange={setCurrentCash}
-          />
-          <InputCard
-            label="自訂現金目標"
-            value={cashGoal}
-            onChange={setCashGoal}
-          />
+          <InputCard label="年度旅遊預算" value={annualTravelBudget} onChange={setAnnualTravelBudget} />
+          <InputCard label="目前旅遊基金" value={currentTravelFund} onChange={setCurrentTravelFund} />
+          <InputCard label="目前現金" value={currentCash} onChange={setCurrentCash} />
+          <InputCard label="自訂現金目標" value={cashGoal} onChange={setCashGoal} />
         </div>
 
         <div className="form-section">
           <h2>股票投資設定</h2>
-          <InputCard
-            label="目前投資資產"
-            value={currentInvestmentAsset}
-            onChange={setCurrentInvestmentAsset}
-          />
-          <InputCard
-            label="每月最低投資金額"
-            value={minInvestment}
-            onChange={setMinInvestment}
-          />
-          <InputCard
-            label="每月最高投資金額"
-            value={maxInvestment}
-            onChange={setMaxInvestment}
-          />
-          <InputCard
-            label="預期年化報酬率"
-            value={annualReturnRate}
-            onChange={setAnnualReturnRate}
-            suffix="%"
-          />
-          <InputCard
-            label="退休後每月期待現金流"
-            value={retirementMonthlyCashflow}
-            onChange={setRetirementMonthlyCashflow}
-          />
+          <InputCard label="目前投資資產" value={currentInvestmentAsset} onChange={setCurrentInvestmentAsset} />
+          <InputCard label="每月最低投資金額" value={minInvestment} onChange={setMinInvestment} />
+          <InputCard label="每月最高投資金額" value={maxInvestment} onChange={setMaxInvestment} />
+          <InputCard label="預期年化報酬率" value={annualReturnRate} onChange={setAnnualReturnRate} suffix="%" />
+          <InputCard label="退休後每月期待現金流" value={retirementMonthlyCashflow} onChange={setRetirementMonthlyCashflow} />
         </div>
       </section>
     </main>
