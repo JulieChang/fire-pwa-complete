@@ -322,32 +322,93 @@ async function publishToThreads({ text, token }) {
       };
     }
 
+    const containerId = createData.id;
+
+    // 等 Threads 後端建立 container
+    await sleep(30000);
+
+    // 先查 container 狀態，避免直接 publish 時 Media Not Found
+    let statusData = null;
+
+    for (let attempt = 1; attempt <= 6; attempt++) {
+      const statusUrl = new URL(
+        `https://graph.threads.net/v1.0/${containerId}`
+      );
+      statusUrl.searchParams.set(
+        "fields",
+        "id,status,status_code"
+      );
+      statusUrl.searchParams.set("access_token", token);
+
+      const statusResponse = await fetch(statusUrl.toString(), {
+        method: "GET",
+      });
+
+      statusData = await statusResponse.json();
+
+      if (
+        statusResponse.ok &&
+        (statusData.status_code === "FINISHED" ||
+          statusData.status === "FINISHED")
+      ) {
+        break;
+      }
+
+      await sleep(10000);
+    }
+
     const publishUrl = "https://graph.threads.net/v1.0/me/threads_publish";
 
-    const publishParams = new URLSearchParams();
-    publishParams.append("creation_id", createData.id);
-    publishParams.append("access_token", token);
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      const publishParams = new URLSearchParams();
+      publishParams.append("creation_id", containerId);
+      publishParams.append("access_token", token);
 
-    const publishResponse = await fetch(publishUrl, {
-      method: "POST",
-      body: publishParams,
-    });
+      const publishResponse = await fetch(publishUrl, {
+        method: "POST",
+        body: publishParams,
+      });
 
-    const publishData = await publishResponse.json();
+      const publishData = await publishResponse.json();
 
-    if (!publishResponse.ok) {
-      return {
-        ok: false,
-        step: "publish",
-        detail: publishData,
-        containerId: createData.id,
-      };
+      if (publishResponse.ok) {
+        return {
+          ok: true,
+          containerId,
+          statusData,
+          publishResult: publishData,
+          attempts: attempt,
+        };
+      }
+
+      const errorCode = publishData?.error?.code;
+      const errorSubcode = publishData?.error?.error_subcode;
+
+      const shouldRetry =
+        errorCode === 2 ||
+        errorCode === 24 ||
+        errorSubcode === 4279009;
+
+      if (!shouldRetry || attempt === 3) {
+        return {
+          ok: false,
+          step: "publish",
+          detail: publishData,
+          statusData,
+          containerId,
+          attempts: attempt,
+        };
+      }
+
+      await sleep(15000);
     }
 
     return {
-      ok: true,
-      containerId: createData.id,
-      publishResult: publishData,
+      ok: false,
+      step: "publish",
+      detail: "Publish failed after retries.",
+      statusData,
+      containerId,
     };
   } catch (error) {
     return {
