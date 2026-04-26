@@ -355,6 +355,38 @@ export default async function handler(req, res) {
 
     const action = req.body?.action || req.query?.action || "publish";
 
+if (action === "redis-health") {
+  const testKey = "threads:redis_health_check";
+  const testValue = `ok-${Date.now()}`;
+
+  await redisSet(testKey, testValue);
+  const readBack = await redisGet(testKey);
+
+  await redisCommand("lpush", [
+    REDIS_KEYS.posts,
+    JSON.stringify({
+      id: `redis-test-${Date.now()}`,
+      date: getTaipeiDateString(),
+      topic: "Redis 測試",
+      topicKey: "redis-test",
+      variant: "TEST",
+      trackingUrl: websiteUrl,
+      generatedText: "This is a Redis write test.",
+      createdAt: new Date().toISOString(),
+      status: "redis-test",
+    }),
+  ]);
+
+  const posts = await getRecentPosts();
+
+  return res.status(200).json({
+    success: true,
+    redisWriteValue: testValue,
+    redisReadBack: readBack,
+    redisMatched: readBack === testValue,
+    posts,
+  });
+}
     if (action === "recent-posts") {
       const posts = await getRecentPosts();
 
