@@ -66,6 +66,110 @@ function AllocationCard({ title, amount, note }) {
   );
 }
 
+function MonthlySavingRatePage() {
+  return (
+    <main className="app">
+      <section className="hero">
+        <div>
+          <p className="eyebrow">Personal Finance Guide</p>
+          <h1>每月存錢比例怎麼算？上班族個人財務管理入門指南</h1>
+
+          <p>
+            每月存錢比例是個人財務管理中最重要的指標之一。比起單純記帳，
+            更重要的是知道每個月收入進來後，應該分配多少給生活費、緊急預備金、
+            投資與長期財務自由目標。
+          </p>
+
+          <div style={{ marginTop: "20px", marginBottom: "24px" }}>
+            <a href="/" className="cta-button">
+              👉 回到首頁免費試算
+            </a>
+          </div>
+        </div>
+      </section>
+
+      <section className="seo-content">
+        <h2>每月存錢比例建議是多少？</h2>
+        <p>
+          一般來說，若剛開始進行理財規劃，建議至少將每月收入的 20% 存下來。
+          如果收入穩定、固定支出較低，則可以逐步提高到 30% 至 40%。
+          但真正適合你的每月存錢比例，應該依照收入、房貸、信貸、保險、
+          生活費與投資目標來調整。
+        </p>
+
+        <h2>常見的每月存錢比例分配方式</h2>
+        <p>
+          對多數上班族來說，可以先用簡化版的資金分配方式開始：
+          50% 用於必要生活支出，20% 至 30% 用於儲蓄與投資，
+          其餘則保留給旅遊、娛樂與彈性支出。若你的目標是財務自由，
+          則應逐步提高儲蓄與投資比例。
+        </p>
+
+        <h2>為什麼不能只看存錢比例？</h2>
+        <p>
+          每月存錢比例只是表面數字，真正重要的是現金流管理。
+          如果你每月存下很多錢，但現金安全水位不足，遇到突發支出時仍可能被迫賣出投資資產。
+          因此，建議先建立 3 至 6 個月的緊急預備金，再提高投資比例。
+        </p>
+
+        <h2>財務自由怎麼開始？先建立穩定儲蓄率</h2>
+        <p>
+          財務自由不是靠一次高報酬投資完成，而是透過長期穩定的現金流管理、
+          每月存錢比例與資產配置逐步累積。當你的投資資產逐漸成長，
+          未來才有機會讓資產產生的現金流覆蓋生活支出。
+        </p>
+
+        <h2>用 FinOps Planner 試算你的每月存錢比例</h2>
+        <p>
+          FinOps Planner 是免費個人財務管理工具，可以協助你輸入每月收入、
+          固定支出、目前現金、旅遊預算與投資目標，快速計算每月可分配金額、
+          現金安全月數、建議補現金金額與財務自由缺口。
+        </p>
+
+        <div style={{ textAlign: "center", marginTop: "32px" }}>
+          <a href="/" className="cta-button">
+            👉 免費計算我的每月存錢比例
+          </a>
+        </div>
+      </section>
+
+      <section className="seo-content">
+        <h2>每月存錢比例常見問題 FAQ</h2>
+
+        <h3>每月存錢 20% 夠嗎？</h3>
+        <p>
+          對剛開始理財的人來說，每月存下收入的 20% 是很好的起點。
+          若收入穩定且支出可控，可以逐步提高到 30% 或 40%。
+        </p>
+
+        <h3>收入不高也需要存錢嗎？</h3>
+        <p>
+          需要。即使金額不高，也建議建立固定儲蓄習慣。
+          早期重點不是金額大小，而是建立穩定的現金流管理紀律。
+        </p>
+
+        <h3>應該先存錢還是先投資？</h3>
+        <p>
+          建議先建立 3 至 6 個月緊急預備金，再逐步提高投資比例。
+          如果現金水位不足，過度投資反而會增加財務壓力。
+        </p>
+
+        <h3>每月存錢比例越高越好嗎？</h3>
+        <p>
+          不一定。過高的存錢比例如果壓縮必要生活品質，容易導致計畫無法長期執行。
+          最好的比例是能穩定維持、並逐步累積資產的比例。
+        </p>
+      </section>
+
+      <section className="seo-content">
+        <p style={{ textAlign: "center", marginTop: "40px" }}>
+          <a href="/">回首頁</a> ｜ <a href="/sitemap.xml">Sitemap</a>
+        </p>
+      </section>
+    </main>
+  );
+}
+
 function SharePanel({ result }) {
   const pageUrl = window.location.href;
 
@@ -141,6 +245,10 @@ ${pageUrl}`;
 }
 
 export default function App() {
+  if (window.location.pathname === "/monthly-saving-rate") {
+    return <MonthlySavingRatePage />;
+  }
+
   const [monthlyIncome, setMonthlyIncome] = useState(100000);
   const [annualBonus, setAnnualBonus] = useState(0);
   const [mortgage, setMortgage] = useState(25000);
@@ -509,15 +617,15 @@ export default function App() {
           <InputCard label="退休後每月期待現金流" value={retirementMonthlyCashflow} onChange={setRetirementMonthlyCashflow} />
         </div>
       </section>
-      
+
       <section className="seo-content">
         <p style={{ textAlign: "center", marginTop: "40px" }}>
+          <a href="/monthly-saving-rate">每月存錢比例指南</a> ｜{" "}
           <a href="/sitemap.xml" target="_blank" rel="noreferrer">
             Sitemap
           </a>
         </p>
       </section>
-      
     </main>
   );
 }
