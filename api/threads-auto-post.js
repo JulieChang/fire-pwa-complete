@@ -136,6 +136,31 @@ async function redisSet(key, value) {
   return redisCommand("set", [key, value]);
 }
 
+async function redisPipeline(commands = []) {
+  const { UPSTASH_REDIS_REST_URL, UPSTASH_REDIS_REST_TOKEN } = process.env;
+
+  if (!UPSTASH_REDIS_REST_URL || !UPSTASH_REDIS_REST_TOKEN) {
+    throw new Error("Missing UPSTASH_REDIS_REST_URL or UPSTASH_REDIS_REST_TOKEN.");
+  }
+
+  const response = await fetch(`${UPSTASH_REDIS_REST_URL}/pipeline`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${UPSTASH_REDIS_REST_TOKEN}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(commands),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(`Redis pipeline failed: ${JSON.stringify(data)}`);
+  }
+
+  return data;
+}
+
 async function getAccessToken() {
   const redisToken = await redisGet(REDIS_KEYS.token);
   return redisToken || process.env.THREADS_ACCESS_TOKEN;
@@ -319,12 +344,22 @@ async function publishToThreads({ text, token }) {
 }
 
 async function savePostRecord(record) {
-  await redisCommand("lpush", [REDIS_KEYS.posts, JSON.stringify(record)]);
-  await redisCommand("ltrim", [REDIS_KEYS.posts, 0, 49]);
+  const recordText = JSON.stringify(record);
+
+  const result = await redisPipeline([
+    ["LPUSH", REDIS_KEYS.posts, recordText],
+    ["LTRIM", REDIS_KEYS.posts, "0", "49"],
+  ]);
+
+  return result;
 }
 
 async function getRecentPosts() {
-  const posts = await redisCommand("lrange", [REDIS_KEYS.posts, 0, 9]);
+  const result = await redisPipeline([
+    ["LRANGE", REDIS_KEYS.posts, "0", "9"],
+  ]);
+
+  const posts = result?.[0]?.result || [];
 
   if (!Array.isArray(posts)) return [];
 
@@ -362,21 +397,19 @@ if (action === "redis-health") {
   await redisSet(testKey, testValue);
   const readBack = await redisGet(testKey);
 
-  await redisCommand("lpush", [
-    REDIS_KEYS.posts,
-    JSON.stringify({
-      id: `redis-test-${Date.now()}`,
-      date: getTaipeiDateString(),
-      topic: "Redis 測試",
-      topicKey: "redis-test",
-      variant: "TEST",
-      trackingUrl: websiteUrl,
-      generatedText: "This is a Redis write test.",
-      createdAt: new Date().toISOString(),
-      status: "redis-test",
-    }),
-  ]);
+  const testRecord = {
+    id: `redis-test-${Date.now()}`,
+    date: getTaipeiDateString(),
+    topic: "Redis 測試",
+    topicKey: "redis-test",
+    variant: "TEST",
+    trackingUrl: websiteUrl,
+    generatedText: "This is a Redis write test.",
+    createdAt: new Date().toISOString(),
+    status: "redis-test",
+  };
 
+  const saveResult = await savePostRecord(testRecord);
   const posts = await getRecentPosts();
 
   return res.status(200).json({
@@ -384,9 +417,11 @@ if (action === "redis-health") {
     redisWriteValue: testValue,
     redisReadBack: readBack,
     redisMatched: readBack === testValue,
+    saveResult,
     posts,
   });
 }
+
     if (action === "recent-posts") {
       const posts = await getRecentPosts();
 
