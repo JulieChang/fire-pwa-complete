@@ -259,111 +259,63 @@ ${style}
 }
 
 async function publishToThreads({ text, token }) {
-  const createUrl = "https://graph.threads.net/v1.0/me/threads";
+  try {
+    const createUrl = "https://graph.threads.net/v1.0/me/threads";
 
-  const createParams = new URLSearchParams();
-  createParams.append("media_type", "TEXT");
-  createParams.append("text", text);
-  createParams.append("access_token", token);
+    const createParams = new URLSearchParams();
+    createParams.append("media_type", "TEXT");
+    createParams.append("text", text);
+    createParams.append("access_token", token);
 
-  const createResponse = await fetch(createUrl, {
-    method: "POST",
-    body: createParams,
-  });
+    const createResponse = await fetch(createUrl, {
+      method: "POST",
+      body: createParams,
+    });
 
-  const createData = await createResponse.json();
+    const createData = await createResponse.json();
 
-  if (!createResponse.ok || !createData.id) {
+    if (!createResponse.ok || !createData.id) {
+      return {
+        ok: false,
+        step: "create-container",
+        detail: createData,
+      };
+    }
+
+    const publishUrl = "https://graph.threads.net/v1.0/me/threads_publish";
+
+    const publishParams = new URLSearchParams();
+    publishParams.append("creation_id", createData.id);
+    publishParams.append("access_token", token);
+
+    const publishResponse = await fetch(publishUrl, {
+      method: "POST",
+      body: publishParams,
+    });
+
+    const publishData = await publishResponse.json();
+
+    if (!publishResponse.ok) {
+      return {
+        ok: false,
+        step: "publish",
+        detail: publishData,
+        containerId: createData.id,
+      };
+    }
+
     return {
-      ok: false,
-      step: "create-container",
-      detail: createData,
-    };
-  }
-
-  const publishUrl = "https://graph.threads.net/v1.0/me/threads_publish";
-
-  const publishParams = new URLSearchParams();
-  publishParams.append("creation_id", createData.id);
-  publishParams.append("access_token", token);
-
-  const publishResponse = await fetch(publishUrl, {
-    method: "POST",
-    body: publishParams,
-  });
-
-  const publishData = await publishResponse.json();
-
-  if (!publishResponse.ok) {
-    return {
-      ok: false,
-      step: "publish",
-      detail: publishData,
+      ok: true,
       containerId: createData.id,
+      publishResult: publishData,
     };
-  }
-
-  return {
-    ok: true,
-    containerId: createData.id,
-    publishResult: publishData,
-  };
-} catch (error) {
+  } catch (error) {
     return {
       ok: false,
       step: "exception",
       detail: error.message,
     };
   }
-}
-
-  const createParams = new URLSearchParams();
-  createParams.append("media_type", "TEXT");
-  createParams.append("text", text);
-  createParams.append("access_token", token);
-
-  const createResponse = await fetch(createUrl, {
-    method: "POST",
-    body: createParams,
-  });
-
-  const createData = await createResponse.json();
-
-  if (!createResponse.ok || !createData.id) {
-    return {
-      ok: false,
-      step: "create-container",
-      detail: createData,
-    };
-  }
-
-  const publishUrl = `https://graph.threads.net/v1.0/${threadsUserId}/threads_publish`;
-
-  const publishParams = new URLSearchParams();
-  publishParams.append("creation_id", createData.id);
-  publishParams.append("access_token", token);
-
-  const publishResponse = await fetch(publishUrl, {
-    method: "POST",
-    body: publishParams,
-  });
-
-  const publishData = await publishResponse.json();
-
-  if (!publishResponse.ok) {
-    return {
-      ok: false,
-      step: "publish",
-      detail: publishData,
-      containerId: createData.id,
-    };
-  }
-
-  return {
-    ok: true,
-    containerId: createData.id,
-    publishResult: publishData,
-  };
 }
 
 async function savePostRecord(record) {
@@ -429,6 +381,7 @@ export default async function handler(req, res) {
     const topic = getTopicFromRequest(req);
     const variant = getVariantFromRequest(req);
     const trackingUrl = buildTrackingUrl(topic, variant);
+
     const generatedText = await generatePost({
       topic,
       variant,
