@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 const websiteUrl = "https://finops-planner.vercel.app";
 
@@ -22,7 +22,9 @@ export default function GrowthAgent() {
   const [secret, setSecret] = useState("");
   const [status, setStatus] = useState("");
   const [result, setResult] = useState("");
+  const [trackingUrl, setTrackingUrl] = useState("");
   const [loading, setLoading] = useState(false);
+  const [recentPosts, setRecentPosts] = useState([]);
 
   const selectedTopic = useMemo(() => {
     return topicGroups.find((item) => item.key === topicKey);
@@ -32,12 +34,14 @@ export default function GrowthAgent() {
     try {
       setLoading(true);
       setResult("");
+      setTrackingUrl("");
 
       const statusText = {
         preview: "正在產生預覽文案...",
         publish: "正在產生並發布 Threads...",
         "force-publish": "正在強制發布 Threads...",
         "refresh-token": "正在 refresh Threads token...",
+        "recent-posts": "正在讀取最近發文紀錄...",
       };
 
       setStatus(statusText[action] || "正在執行...");
@@ -63,6 +67,12 @@ export default function GrowthAgent() {
         return;
       }
 
+      if (action === "recent-posts") {
+        setStatus("已讀取最近發文紀錄");
+        setRecentPosts(data.posts || []);
+        return;
+      }
+
       if (action === "refresh-token") {
         setStatus(
           data.refreshResult?.refreshed
@@ -81,11 +91,20 @@ export default function GrowthAgent() {
 
       setStatus(
         action === "preview"
-          ? `已產生預覽：${data.topic?.name || selectedTopic?.name} / ${data.variant}`
-          : `已發布：${data.topic?.name || selectedTopic?.name} / ${data.variant}`
+          ? `已產生預覽：${data.topic?.name || selectedTopic?.name} / ${
+              data.variant
+            }`
+          : `已發布：${data.topic?.name || selectedTopic?.name} / ${
+              data.variant
+            }`
       );
 
+      setTrackingUrl(data.trackingUrl || "");
       setResult(data.generatedText || JSON.stringify(data, null, 2));
+
+      if (action === "publish" || action === "force-publish") {
+        await loadRecentPosts();
+      }
     } catch (error) {
       setStatus("發生錯誤");
       setResult(error.message);
@@ -94,10 +113,48 @@ export default function GrowthAgent() {
     }
   };
 
+  const loadRecentPosts = async () => {
+    if (!secret) return;
+
+    try {
+      const response = await fetch("/api/threads-auto-post", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          action: "recent-posts",
+          secret,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setRecentPosts(data.posts || []);
+      }
+    } catch {
+      // 不阻斷主流程
+    }
+  };
+
+  useEffect(() => {
+    if (secret) {
+      loadRecentPosts();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [secret]);
+
   const copyToClipboard = async () => {
     if (!result) return;
     await navigator.clipboard.writeText(result);
     alert("已複製內容！");
+  };
+
+  const copyTrackingUrl = async () => {
+    if (!trackingUrl) return;
+    await navigator.clipboard.writeText(trackingUrl);
+    alert("已複製追蹤連結！");
   };
 
   return (
@@ -105,7 +162,7 @@ export default function GrowthAgent() {
       <h2>AI Growth Agent</h2>
 
       <p className="agent-subtitle">
-        每天自動產生一篇 Threads 短文，輪播理財、財務規劃、退休計劃與財商主題，並支援 Token refresh 與 A/B 文案測試。
+        每天自動產生一篇 Threads 短文，輪播理財、財務規劃、退休計劃與財商主題，並自動加入 UTM 追蹤與 Redis 發文紀錄。
       </p>
 
       <div className="agent-form">
@@ -167,6 +224,14 @@ export default function GrowthAgent() {
           >
             Refresh Token
           </button>
+
+          <button
+            type="button"
+            disabled={loading || !secret}
+            onClick={() => callAgent("recent-posts")}
+          >
+            查看最近紀錄
+          </button>
         </div>
       </div>
 
@@ -175,11 +240,23 @@ export default function GrowthAgent() {
           網站連結：<a href={websiteUrl}>{websiteUrl}</a>
         </p>
         <p>
-          自動模式會每天只發一篇，避免同一天重複發文。若測試需要重發，才使用「強制發布」。
+          自動發布會每天只發一篇。每篇文會自動附上 UTM，用於追蹤 Threads 帶來的流量。
         </p>
       </div>
 
       {status && <p className="agent-status">{status}</p>}
+
+      {trackingUrl && (
+        <div className="agent-output">
+          <div className="agent-output-header">
+            <h3>UTM 追蹤連結</h3>
+            <button type="button" onClick={copyTrackingUrl}>
+              複製連結
+            </button>
+          </div>
+          <pre>{trackingUrl}</pre>
+        </div>
+      )}
 
       {result && (
         <div className="agent-output">
@@ -190,6 +267,36 @@ export default function GrowthAgent() {
             </button>
           </div>
           <pre>{result}</pre>
+        </div>
+      )}
+
+      {recentPosts.length > 0 && (
+        <div className="agent-output">
+          <div className="agent-output-header">
+            <h3>最近 10 篇發文紀錄</h3>
+            <button type="button" onClick={loadRecentPosts}>
+              重新整理
+            </button>
+          </div>
+
+          <div className="post-history">
+            {recentPosts.map((post, index) => (
+              <div className="post-history-item" key={`${post.id}-${index}`}>
+                <p>
+                  <strong>{post.date}</strong>｜{post.topic}｜版本{" "}
+                  {post.variant}
+                </p>
+
+                <p>
+                  <a href={post.trackingUrl} target="_blank" rel="noreferrer">
+                    UTM 追蹤連結
+                  </a>
+                </p>
+
+                <pre>{post.generatedText}</pre>
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>
