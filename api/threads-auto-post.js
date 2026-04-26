@@ -259,13 +259,56 @@ ${style}
 }
 
 async function publishToThreads({ text, token }) {
-  const threadsUserId = process.env.THREADS_USER_ID;
+  const createUrl = "https://graph.threads.net/v1.0/me/threads";
 
-  if (!threadsUserId) {
-    throw new Error("Missing THREADS_USER_ID.");
+  const createParams = new URLSearchParams();
+  createParams.append("media_type", "TEXT");
+  createParams.append("text", text);
+  createParams.append("access_token", token);
+
+  const createResponse = await fetch(createUrl, {
+    method: "POST",
+    body: createParams,
+  });
+
+  const createData = await createResponse.json();
+
+  if (!createResponse.ok || !createData.id) {
+    return {
+      ok: false,
+      step: "create-container",
+      detail: createData,
+    };
   }
 
-  const createUrl = `https://graph.threads.net/v1.0/${threadsUserId}/threads`;
+  const publishUrl = "https://graph.threads.net/v1.0/me/threads_publish";
+
+  const publishParams = new URLSearchParams();
+  publishParams.append("creation_id", createData.id);
+  publishParams.append("access_token", token);
+
+  const publishResponse = await fetch(publishUrl, {
+    method: "POST",
+    body: publishParams,
+  });
+
+  const publishData = await publishResponse.json();
+
+  if (!publishResponse.ok) {
+    return {
+      ok: false,
+      step: "publish",
+      detail: publishData,
+      containerId: createData.id,
+    };
+  }
+
+  return {
+    ok: true,
+    containerId: createData.id,
+    publishResult: publishData,
+  };
+}
 
   const createParams = new URLSearchParams();
   createParams.append("media_type", "TEXT");
