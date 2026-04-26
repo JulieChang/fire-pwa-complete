@@ -509,6 +509,15 @@ export default function App() {
           <InputCard label="退休後每月期待現金流" value={retirementMonthlyCashflow} onChange={setRetirementMonthlyCashflow} />
         </div>
       </section>
+      
+      <section className="seo-content">
+        <p style={{ textAlign: "center", marginTop: "40px" }}>
+          <a href="/sitemap.xml" target="_blank" rel="noreferrer">
+            Sitemap
+          </a>
+        </p>
+      </section>
+      
     </main>
   );
 }
