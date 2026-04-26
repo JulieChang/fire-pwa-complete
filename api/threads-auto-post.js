@@ -294,6 +294,10 @@ ${style}
   return text.trim();
 }
 
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 async function publishToThreads({ text, token }) {
   try {
     const createUrl = "https://graph.threads.net/v1.0/me/threads";
