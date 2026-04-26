@@ -34,6 +34,7 @@ const REDIS_KEYS = {
   lastPostText: "threads:last_post_text",
   lastPostTopic: "threads:last_post_topic",
   lastPostVariant: "threads:last_post_variant",
+  posts: "threads:posts",
 };
 
 function getTaipeiDateString() {
@@ -45,25 +46,13 @@ function getTaipeiDateString() {
   }).format(new Date());
 }
 
-function getTaipeiHour() {
-  return Number(
-    new Intl.DateTimeFormat("en-US", {
-      timeZone: "Asia/Taipei",
-      hour: "2-digit",
-      hour12: false,
-    }).format(new Date())
-  );
-}
-
 function getTopicByDate() {
-  const now = new Date();
-  const dayNumber = Math.floor(now.getTime() / (1000 * 60 * 60 * 24));
+  const dayNumber = Math.floor(Date.now() / (1000 * 60 * 60 * 24));
   return TOPICS[dayNumber % TOPICS.length];
 }
 
 function getVariantByDate() {
-  const now = new Date();
-  const dayNumber = Math.floor(now.getTime() / (1000 * 60 * 60 * 24));
+  const dayNumber = Math.floor(Date.now() / (1000 * 60 * 60 * 24));
   return dayNumber % 2 === 0 ? "A" : "B";
 }
 
@@ -75,6 +64,16 @@ function getTopicFromRequest(req) {
   }
 
   return TOPICS.find((topic) => topic.key === topicKey) || getTopicByDate();
+}
+
+function getVariantFromRequest(req) {
+  const variant = req.body?.variant || req.query?.variant;
+
+  if (!variant || variant === "auto") {
+    return getVariantByDate();
+  }
+
+  return variant === "B" ? "B" : "A";
 }
 
 function isAuthorized(req, cronSecret) {
@@ -91,6 +90,18 @@ function isAuthorized(req, cronSecret) {
   );
 }
 
+function buildTrackingUrl(topic, variant) {
+  const date = getTaipeiDateString();
+  const utmContent = `${topic.key}_${variant}_${date}`;
+
+  return (
+    `${websiteUrl}/?utm_source=threads` +
+    `&utm_medium=social` +
+    `&utm_campaign=finops_growth` +
+    `&utm_content=${encodeURIComponent(utmContent)}`
+  );
+}
+
 async function redisCommand(command, args = []) {
   const { UPSTASH_REDIS_REST_URL, UPSTASH_REDIS_REST_TOKEN } = process.env;
 
@@ -98,18 +109,22 @@ async function redisCommand(command, args = []) {
     return null;
   }
 
-  const response = await fetch(`${UPSTASH_REDIS_REST_URL}/${command}/${args.map(encodeURIComponent).join("/")}`, {
+  const url = `${UPSTASH_REDIS_REST_URL}/${command}/${args
+    .map((arg) => encodeURIComponent(String(arg)))
+    .join("/")}`;
+
+  const response = await fetch(url, {
     headers: {
       Authorization: `Bearer ${UPSTASH_REDIS_REST_TOKEN}`,
     },
   });
 
+  const data = await response.json();
+
   if (!response.ok) {
-    const text = await response.text();
-    throw new Error(`Redis command failed: ${text}`);
+    throw new Error(`Redis command failed: ${JSON.stringify(data)}`);
   }
 
-  const data = await response.json();
   return data.result;
 }
 
@@ -140,6 +155,7 @@ async function refreshThreadsTokenIfNeeded(force = false) {
 
   const lastUpdatedAt = await redisGet(REDIS_KEYS.tokenUpdatedAt);
   const lastUpdatedTime = lastUpdatedAt ? new Date(lastUpdatedAt).getTime() : 0;
+
   const daysSinceUpdate = lastUpdatedTime
     ? (Date.now() - lastUpdatedTime) / (1000 * 60 * 60 * 24)
     : 999;
@@ -175,17 +191,17 @@ async function refreshThreadsTokenIfNeeded(force = false) {
   };
 }
 
-async function generatePost({ topic, variant }) {
+async function generatePost({ topic, variant, trackingUrl }) {
   const style =
     variant === "A"
-      ? "A版：開頭要偏共鳴痛點，例如月光族、存不到錢、旅行預算失控。"
-      : "B版：開頭要偏專業洞察，例如現金流、資產配置、退休準備、財務安全感。";
+      ? "A版：開頭偏共鳴痛點，例如月光族、存不到錢、旅行預算失控。"
+      : "B版：開頭偏專業洞察，例如現金流、資產配置、退休準備、財務安全感。";
 
   const prompt = `
 你是 FinOps Planner Growth Agent，也是一位熟悉 Threads 社群經營的繁體中文內容策略顧問。
 
 請產出一篇適合 Threads 的繁體中文短文，用來推廣網站：
-${websiteUrl}
+${trackingUrl}
 
 今日主題：
 ${topic.name}
@@ -207,7 +223,7 @@ ${style}
 5. 開頭要吸引注意
 6. 中間給 2 到 3 個簡單觀點
 7. 結尾自然引導使用 FinOps Planner
-8. 最後一定要放上網站連結：${websiteUrl}
+8. 最後一定要放上這個追蹤連結：${trackingUrl}
 9. 不要使用 Markdown 標題格式
 10. 不要使用過多 emoji
 11. 加上 3 到 5 個相關 hashtag
@@ -233,9 +249,7 @@ ${style}
   const data = await response.json();
 
   const text =
-    data.output_text ||
-    data.output?.[0]?.content?.[0]?.text ||
-    "";
+    data.output_text || data.output?.[0]?.content?.[0]?.text || "";
 
   if (!text) {
     throw new Error("OpenAI did not return generated text.");
@@ -302,6 +316,27 @@ async function publishToThreads({ text, token }) {
   };
 }
 
+async function savePostRecord(record) {
+  await redisCommand("lpush", [REDIS_KEYS.posts, JSON.stringify(record)]);
+  await redisCommand("ltrim", [REDIS_KEYS.posts, 0, 49]);
+}
+
+async function getRecentPosts() {
+  const posts = await redisCommand("lrange", [REDIS_KEYS.posts, 0, 9]);
+
+  if (!Array.isArray(posts)) return [];
+
+  return posts
+    .map((item) => {
+      try {
+        return JSON.parse(item);
+      } catch {
+        return null;
+      }
+    })
+    .filter(Boolean);
+}
+
 export default async function handler(req, res) {
   try {
     if (req.method !== "GET" && req.method !== "POST") {
@@ -317,8 +352,15 @@ export default async function handler(req, res) {
     }
 
     const action = req.body?.action || req.query?.action || "publish";
-    const topic = getTopicFromRequest(req);
-    const variant = req.body?.variant || req.query?.variant || getVariantByDate();
+
+    if (action === "recent-posts") {
+      const posts = await getRecentPosts();
+
+      return res.status(200).json({
+        success: true,
+        posts,
+      });
+    }
 
     if (action === "refresh-token") {
       const refreshResult = await refreshThreadsTokenIfNeeded(true);
@@ -334,9 +376,13 @@ export default async function handler(req, res) {
       });
     }
 
+    const topic = getTopicFromRequest(req);
+    const variant = getVariantFromRequest(req);
+    const trackingUrl = buildTrackingUrl(topic, variant);
     const generatedText = await generatePost({
       topic,
       variant,
+      trackingUrl,
     });
 
     if (action === "preview") {
@@ -345,6 +391,7 @@ export default async function handler(req, res) {
         mode: "preview",
         topic,
         variant,
+        trackingUrl,
         generatedText,
       });
     }
@@ -379,24 +426,39 @@ export default async function handler(req, res) {
       });
     }
 
+    const record = {
+      id: publishResult.publishResult?.id || publishResult.containerId,
+      date: today,
+      topic: topic.name,
+      topicKey: topic.key,
+      variant,
+      trackingUrl,
+      generatedText,
+      containerId: publishResult.containerId,
+      createdAt: new Date().toISOString(),
+      status: "published",
+    };
+
     await redisSet(REDIS_KEYS.lastPostDate, today);
     await redisSet(REDIS_KEYS.lastPostText, generatedText);
     await redisSet(REDIS_KEYS.lastPostTopic, topic.name);
     await redisSet(REDIS_KEYS.lastPostVariant, variant);
+    await savePostRecord(record);
 
     return res.status(200).json({
       success: true,
       mode: action,
       taipeiDate: today,
-      taipeiHour: getTaipeiHour(),
       topic,
       variant,
+      trackingUrl,
       tokenRefresh: {
         refreshed: refreshResult.refreshed,
         reason: refreshResult.reason,
         expiresIn: refreshResult.expiresIn,
       },
       generatedText,
+      postRecord: record,
       containerId: publishResult.containerId,
       publishResult: publishResult.publishResult,
     });
