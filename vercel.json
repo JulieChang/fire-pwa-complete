@@ -4,5 +4,11 @@
       "path": "/api/threads-auto-post",
       "schedule": "0 13 * * *"
     }
+  ],
+  "routes": [
+    {
+      "src": "/sitemap.xml",
+      "dest": "/sitemap.xml"
+    }
   ]
 }
