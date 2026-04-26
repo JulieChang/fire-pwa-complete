@@ -8,7 +8,10 @@
   "routes": [
     {
       "src": "/sitemap.xml",
-      "dest": "/sitemap.xml"
+      "headers": {
+        "Content-Type": "application/xml"
+      },
+      "dest": "/public/sitemap.xml"
     }
   ]
 }
