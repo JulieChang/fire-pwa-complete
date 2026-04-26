@@ -78,7 +78,7 @@ function SharePanel({ result }) {
 財務自由目標資產：${formatNTD(result.financialFreedomTarget)}
 目前還差：${formatNTD(result.financialFreedomGap)}
 
-用這個免費工具試算你的現金水位、投資配置與財務自由缺口：
+用這個免費個人財務管理工具，試算你的現金流管理、每月存錢比例、投資配置與財務自由缺口：
 ${pageUrl}`;
 
   const encodedText = encodeURIComponent(shareText);
@@ -124,37 +124,17 @@ ${pageUrl}`;
     <section className="section share-section">
       <h2>分享我的計算結果</h2>
       <p className="share-description">
-        可將目前的現金水位、投資配置與財務自由缺口分享出去，也可以列印或另存成 PDF。
+        可將目前的現金水位、投資配置、每月存錢比例與財務自由缺口分享出去，也可以列印或另存成 PDF。
       </p>
 
       <div className="share-buttons">
-        <button type="button" onClick={nativeShare}>
-          手機分享
-        </button>
-
-        <a href={shareLinks.facebook} target="_blank" rel="noreferrer">
-          Facebook
-        </a>
-
-        <a href={shareLinks.threads} target="_blank" rel="noreferrer">
-          Threads
-        </a>
-
-        <a href={shareLinks.x} target="_blank" rel="noreferrer">
-          X
-        </a>
-
-        <a href={shareLinks.line} target="_blank" rel="noreferrer">
-          LINE
-        </a>
-
-        <button type="button" onClick={copyText}>
-          複製給 IG
-        </button>
-
-        <button type="button" onClick={savePdf}>
-          存成 PDF
-        </button>
+        <button type="button" onClick={nativeShare}>手機分享</button>
+        <a href={shareLinks.facebook} target="_blank" rel="noreferrer">Facebook</a>
+        <a href={shareLinks.threads} target="_blank" rel="noreferrer">Threads</a>
+        <a href={shareLinks.x} target="_blank" rel="noreferrer">X</a>
+        <a href={shareLinks.line} target="_blank" rel="noreferrer">LINE</a>
+        <button type="button" onClick={copyText}>複製給 IG</button>
+        <button type="button" onClick={savePdf}>存成 PDF</button>
       </div>
     </section>
   );
@@ -355,27 +335,58 @@ export default function App() {
         <div>
           {isDev && <GrowthAgent />}
 
-          <p className="eyebrow">Personal FinOps Engine</p>
-          <h1>每月資金分配引擎</h1>
+          <p className="eyebrow">Personal FinOps Planner</p>
+
+          <h1>個人財務管理工具｜用理財規劃做好現金流管理</h1>
+
           <p>
-            依照收入、獎金、固定支出、現金水位、旅遊預算與投資上限，自動產出每月分配建議。
+            想知道財務自由怎麼開始？FinOps Planner 是一個免費個人財務管理工具，
+            幫助你用數據計算每月存錢比例、現金安全月數、投資配置與財務自由缺口。
           </p>
+
           <p>
-            幫助你自動計算：✔ 現金安全水位 ✔ 每月投資配置 ✔ 旅遊預算規劃 ✔ 財務自由缺口
+            不只是記帳，而是協助你建立完整的理財規劃系統：收入進來後，該留多少現金、
+            存多少旅遊基金、投入多少股票或 ETF，都能透過工具快速試算。
           </p>
-          <p>適合：月薪族 / 股票與 ETF 投資者 / 想達成財務自由的人</p>
+
+          <p>
+            適合：月薪族、股票與 ETF 投資者、想改善現金流管理、想開始財務自由規劃的人。
+          </p>
         </div>
       </section>
 
       <section className="seo-content">
-        <h2>免費財務規劃工具｜現金水位與投資配置一次搞定</h2>
+        <h2>免費個人財務管理工具：從現金流管理開始</h2>
         <p>
-          這是一個專為台灣上班族設計的免費財務規劃工具，透過簡單輸入每月收入、
-          年度獎金、固定支出與現金資產，即可自動計算最適合你的資金分配策略。
+          多數人以為理財規劃的第一步是投資，但真正穩定的個人財務管理，
+          應該先從現金流管理開始。你需要知道每個月收入扣除房貸、信貸、
+          保險、生活費與固定支出後，還剩下多少可分配金額。
         </p>
         <p>
-          本工具整合現金流管理、投資配置、旅遊預算與退休現金流目標，
-          幫助你用更系統化的方式管理財務，而不是單純記帳。
+          FinOps Planner 會根據你的收入、年度獎金、固定支出、目前現金、
+          旅遊預算與投資上限，自動計算每月資金分配建議，協助你建立更清楚的財務決策流程。
+        </p>
+
+        <h2>理財規劃不只記帳，而是做出更好的財務決策</h2>
+        <p>
+          傳統記帳工具通常只能告訴你錢花去哪裡，但完整的理財規劃應該回答：
+          現金安全水位是否足夠？每月存錢比例是否合理？投資比例是否過高？
+          距離財務自由還差多少？
+        </p>
+        <p>
+          這個工具將個人財務管理拆解成現金、旅遊基金、股票投資與退休現金流目標，
+          讓你可以用一個簡單的儀表板追蹤整體財務狀況。
+        </p>
+
+        <h2>財務自由怎麼開始？先建立每月存錢比例</h2>
+        <p>
+          如果你正在搜尋「財務自由怎麼開始」，第一步不是追求高報酬，
+          而是建立穩定的每月存錢比例。一般來說，每月存下收入的 20% 是基本財務紀律；
+          若想加速累積資產，可以逐步提高到 30% 至 40%。
+        </p>
+        <p>
+          但每個人的房貸、生活費、家庭責任、旅遊需求與投資目標都不同，
+          因此最好的方式不是套用固定公式，而是依照你的現金流狀況自動試算。
         </p>
       </section>
 
@@ -483,6 +494,22 @@ export default function App() {
       </section>
 
       <SharePanel result={result} />
+
+      <section className="seo-content">
+        <h2>這個個人財務管理工具適合誰？</h2>
+        <p>
+          FinOps Planner 適合想開始理財規劃的新手，也適合已經有投資習慣、
+          但想更精準管理現金流與每月存錢比例的人。若你常常覺得收入不低，
+          但月底卻沒有留下多少錢，這個工具可以協助你重新檢視資金分配。
+        </p>
+
+        <h2>為什麼現金流管理比單純記帳更重要？</h2>
+        <p>
+          記帳是回頭看過去的支出，現金流管理則是幫你安排未來的資金。
+          當你知道每月可分配金額、現金安全月數與財務自由缺口後，
+          就能更理性地決定該存錢、投資、還債，或安排旅遊基金。
+        </p>
+      </section>
 
       <section className="form-grid">
         <div className="form-section">
