@@ -140,10 +140,14 @@ async function redisPipeline(commands = []) {
   const { UPSTASH_REDIS_REST_URL, UPSTASH_REDIS_REST_TOKEN } = process.env;
 
   if (!UPSTASH_REDIS_REST_URL || !UPSTASH_REDIS_REST_TOKEN) {
-    throw new Error("Missing UPSTASH_REDIS_REST_URL or UPSTASH_REDIS_REST_TOKEN.");
+    throw new Error(
+      "Missing UPSTASH_REDIS_REST_URL or UPSTASH_REDIS_REST_TOKEN."
+    );
   }
 
-  const response = await fetch(`${UPSTASH_REDIS_REST_URL}/pipeline`, {
+  const baseUrl = UPSTASH_REDIS_REST_URL.replace(/\/$/, "");
+
+  const response = await fetch(`${baseUrl}/pipeline`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${UPSTASH_REDIS_REST_TOKEN}`,
@@ -152,7 +156,14 @@ async function redisPipeline(commands = []) {
     body: JSON.stringify(commands),
   });
 
-  const data = await response.json();
+  const text = await response.text();
+
+  let data;
+  try {
+    data = JSON.parse(text);
+  } catch {
+    throw new Error(`Redis pipeline returned non-JSON response: ${text}`);
+  }
 
   if (!response.ok) {
     throw new Error(`Redis pipeline failed: ${JSON.stringify(data)}`);
@@ -350,14 +361,10 @@ async function savePostRecord(record) {
     ["LPUSH", REDIS_KEYS.posts, recordText],
     ["LTRIM", REDIS_KEYS.posts, "0", "49"],
   ]);
-
-  return result;
 }
 
 async function getRecentPosts() {
-  const result = await redisPipeline([
-    ["LRANGE", REDIS_KEYS.posts, "0", "9"],
-  ]);
+  const result = await redisPipeline([["LRANGE", REDIS_KEYS.posts, "0", "9"],]);
 
   const posts = result?.[0]?.result || [];
 
