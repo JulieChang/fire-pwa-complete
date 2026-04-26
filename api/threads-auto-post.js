@@ -308,6 +308,13 @@ async function publishToThreads({ text, token }) {
     containerId: createData.id,
     publishResult: publishData,
   };
+} catch (error) {
+    return {
+      ok: false,
+      step: "exception",
+      detail: error.message,
+    };
+  }
 }
 
   const createParams = new URLSearchParams();
