@@ -4,14 +4,5 @@
       "path": "/api/threads-auto-post",
       "schedule": "0 13 * * *"
     }
-  ],
-  "routes": [
-    {
-      "src": "/sitemap.xml",
-      "headers": {
-        "Content-Type": "application/xml"
-      },
-      "dest": "/public/sitemap.xml"
-    }
   ]
 }
