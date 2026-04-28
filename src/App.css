@@ -467,3 +467,25 @@ body {
   color: #2563eb;
   font-weight: 600;
 }
+
+.page-actions {
+  margin-bottom: 28px;
+}
+
+.home-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 16px;
+  border-radius: 999px;
+  background: #111827;
+  color: #ffffff !important;
+  text-decoration: none;
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.home-button:hover {
+  opacity: 0.85;
+  text-decoration: none;
+}
