@@ -18,11 +18,32 @@
           "value": "application/xml"
         }
       ]
+    },
+    {
+      "source": "/ads.txt",
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "text/plain"
+        }
+      ]
     }
   ],
   "rewrites": [
     {
       "source": "/monthly-saving-rate",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/about",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/privacy-policy",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/contact",
       "destination": "/index.html"
     }
   ]
