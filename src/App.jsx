@@ -247,6 +247,7 @@ ${pageUrl}`;
 function AboutPage() {
   return (
     <main className="legal-page">
+      <HomeButton />
       <h1>關於個人 FinOps 財務管理工具</h1>
 
       <p>
@@ -282,6 +283,7 @@ function AboutPage() {
 function PrivacyPolicyPage() {
   return (
     <main className="legal-page">
+      <HomeButton />
       <h1>隱私權政策</h1>
 
       <p>
@@ -357,6 +359,7 @@ function PrivacyPolicyPage() {
 function ContactPage() {
   return (
     <main className="legal-page">
+      <HomeButton />
       <h1>聯絡我們</h1>
 
       <p>
@@ -366,15 +369,14 @@ function ContactPage() {
 
       <h2>聯絡方式</h2>
       <p>
-        Email：
-        <a href="mailto:contact@finops-planner.com">
-          contact@finops-planner.com
+        Facebook 粉絲專頁：
+        <a
+          href="https://www.facebook.com/finopsplanner"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          個人 FinOps 財務管理
         </a>
-      </p>
-
-      <p>
-        如果你尚未建立正式網域信箱，也可以先將上方 Email 改成你目前可收信的信箱。
-        建議未來若要經營網站品牌，可以再建立正式網域與專用聯絡信箱。
       </p>
 
       <h2>網站用途</h2>
@@ -388,6 +390,16 @@ function ContactPage() {
         我們會盡量在收到訊息後的合理時間內回覆，但實際回覆時間可能依訊息內容與工作量而有所不同。
       </p>
     </main>
+  );
+}
+
+function HomeButton() {
+  return (
+    <div className="page-actions">
+      <a className="home-button" href="/">
+        ← 回到首頁
+      </a>
+    </div>
   );
 }
 
