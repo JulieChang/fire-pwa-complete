@@ -20,6 +20,15 @@
       ]
     },
     {
+      "source": "/robots.txt",
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "text/plain"
+        }
+      ]
+    },
+    {
       "source": "/ads.txt",
       "headers": [
         {
@@ -43,7 +52,19 @@
       "destination": "/index.html"
     },
     {
+      "source": "/disclaimer",
+      "destination": "/index.html"
+    },
+    {
       "source": "/contact",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/blog",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/blog/:path*",
       "destination": "/index.html"
     }
   ]
