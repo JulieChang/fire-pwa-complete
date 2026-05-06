@@ -17,6 +17,44 @@ body {
   padding: 24px;
 }
 
+/* ===== Site Header ===== */
+.site-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 20px;
+  margin-bottom: 24px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 18px;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.05);
+}
+
+.site-logo {
+  color: #111827;
+  text-decoration: none;
+  font-weight: 900;
+  font-size: 18px;
+}
+
+.site-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+
+.site-nav a {
+  color: #2563eb;
+  text-decoration: none;
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.site-nav a:hover {
+  text-decoration: underline;
+}
+
 /* ===== Header ===== */
 .hero {
   background: linear-gradient(135deg, #4f6cff, #6c8cff);
@@ -384,21 +422,6 @@ body {
   margin-top: 0;
 }
 
-/* ===== Projection ===== */
-.projection {
-  font-size: 24px;
-  font-weight: bold;
-  color: #4f6cff;
-  text-align: center;
-}
-
-/* ===== 兩欄區塊 ===== */
-.two-column {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 24px;
-}
-
 /* ===== SEO Content ===== */
 .seo-content {
   background: white;
@@ -420,6 +443,110 @@ body {
 .seo-content h3 {
   margin-top: 20px;
   color: #111827;
+}
+
+.inline-links {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.inline-links a {
+  color: #2563eb;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.inline-links a:hover {
+  text-decoration: underline;
+}
+
+/* ===== Blog ===== */
+.blog-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+}
+
+.article-card {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 18px;
+  padding: 22px;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.05);
+}
+
+.article-card h2 {
+  margin: 8px 0 12px;
+  line-height: 1.4;
+  color: #111827;
+}
+
+.article-card p {
+  line-height: 1.7;
+  color: #4b5563;
+}
+
+.article-card a {
+  color: #2563eb;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.article-card a:hover {
+  text-decoration: underline;
+}
+
+.article-category {
+  display: inline-block;
+  font-size: 13px;
+  font-weight: 800;
+  color: #4f6cff;
+  margin: 0 0 8px;
+}
+
+.article-page {
+  max-width: 900px;
+  margin: 0 auto 40px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 20px;
+  padding: 34px;
+  line-height: 1.9;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.05);
+}
+
+.article-page h1 {
+  font-size: 34px;
+  line-height: 1.35;
+  margin: 8px 0 12px;
+  color: #111827;
+}
+
+.article-page p {
+  font-size: 16px;
+  color: #374151;
+}
+
+.article-meta {
+  color: #6b7280 !important;
+  font-size: 14px !important;
+}
+
+.article-description {
+  font-weight: 700;
+  color: #1f2937 !important;
+  background: #f8faff;
+  border-left: 4px solid #4f6cff;
+  padding: 14px 16px;
+  border-radius: 10px;
+}
+
+.article-cta {
+  margin-top: 32px;
+  padding: 22px;
+  background: #eef3ff;
+  border-radius: 16px;
 }
 
 /* ===== Growth Agent ===== */
@@ -582,14 +709,14 @@ body {
 
 /* ===== Legal Pages ===== */
 .legal-page {
-  max-width: 880px;
+  max-width: 980px;
   margin: 0 auto;
-  padding: 56px 24px 80px;
+  padding: 24px;
   line-height: 1.8;
   color: #1f2937;
 }
 
-.legal-page h1 {
+.legal-page > h1 {
   font-size: 36px;
   margin-bottom: 28px;
   color: #111827;
@@ -644,8 +771,18 @@ body {
 
 /* ===== RWD ===== */
 @media (max-width: 900px) {
-  .app {
+  .app,
+  .legal-page {
     padding: 16px;
+  }
+
+  .site-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .site-nav {
+    gap: 10px;
   }
 
   .dashboard {
@@ -656,15 +793,15 @@ body {
     grid-template-columns: 1fr;
   }
 
-  .two-column {
-    grid-template-columns: 1fr;
-  }
-
   .form-grid {
     grid-template-columns: 1fr;
   }
 
   .visual-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .blog-grid {
     grid-template-columns: 1fr;
   }
 
@@ -681,8 +818,13 @@ body {
     padding: 22px;
   }
 
-  .legal-page h1 {
+  .legal-page > h1,
+  .article-page h1 {
     font-size: 30px;
+  }
+
+  .article-page {
+    padding: 24px;
   }
 }
 
@@ -711,6 +853,7 @@ body {
   .share-section,
   .calculator-section,
   .site-footer,
+  .site-header,
   .cta-button {
     display: none;
   }
@@ -726,7 +869,8 @@ body {
   .section,
   .dashboard,
   .hero,
-  .seo-content {
+  .seo-content,
+  .article-page {
     box-shadow: none !important;
     border: 1px solid #e5e7eb;
     break-inside: avoid;
