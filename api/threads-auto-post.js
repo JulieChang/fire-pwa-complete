@@ -27,6 +27,76 @@ const TOPICS = [
   },
 ];
 
+const CONTENT_FORMATS = [
+  {
+    key: "story",
+    name: "生活情境型",
+    instruction:
+      "用一個真實生活情境開場，例如月底看帳單、訂機票前、發薪日、繳貸款日、想投資卻怕現金不夠。不要列點，不要寫三個重點。",
+  },
+  {
+    key: "question",
+    name: "提問反思型",
+    instruction:
+      "用一個具體問題開場，引導讀者反思自己的現金流或存錢習慣。中段用短句推進，不要列出三點。",
+  },
+  {
+    key: "mini-case",
+    name: "小案例型",
+    instruction:
+      "用一個小案例開場，例如月薪 5 萬、8 萬、10 萬的人如何分配錢。可以用簡短算式，但不要寫成三點清單。",
+  },
+  {
+    key: "myth",
+    name: "迷思破解型",
+    instruction:
+      "用一句常見理財迷思開場，例如「收入高就一定存得到錢嗎？」接著用自然段落說明，不要使用三個關鍵、三個提醒這種架構。",
+  },
+  {
+    key: "before-after",
+    name: "前後對比型",
+    instruction:
+      "用 Before / After 的概念描述改變前後的差異，但不要使用 Markdown 標題。內容要像個人分享，不要像教科書。",
+  },
+  {
+    key: "one-idea",
+    name: "單一觀念型",
+    instruction:
+      "整篇只講一個核心觀念，例如現金水位、旅遊基金、固定支出率、退休現金流。不要延伸成三點，不要列清單。",
+  },
+  {
+    key: "soft-opinion",
+    name: "觀點評論型",
+    instruction:
+      "用一個溫和但有觀點的句子開場，例如「我覺得理財最難的不是投資，而是知道錢該流去哪裡。」接著自然說明。",
+  },
+  {
+    key: "calculator-hook",
+    name: "試算誘因型",
+    instruction:
+      "用「試算後才發現」這類語氣開場，強調很多財務焦慮其實來自沒有看見現金流。自然帶到工具，但不要像硬廣告。",
+  },
+];
+
+const OPENING_BANS = [
+  "三個提醒",
+  "三個關鍵",
+  "三個角度",
+  "三件事",
+  "三點",
+  "從這三點開始",
+  "你可以從以下三點開始",
+  "以下三個",
+  "3 個提醒",
+  "3 個關鍵",
+  "3 個角度",
+  "3 件事",
+  "第一、第二、第三",
+  "第一點",
+  "第二點",
+  "第三點",
+];
+
 const REDIS_KEYS = {
   token: "threads:access_token",
   tokenUpdatedAt: "threads:token_updated_at",
@@ -34,6 +104,7 @@ const REDIS_KEYS = {
   lastPostText: "threads:last_post_text",
   lastPostTopic: "threads:last_post_topic",
   lastPostVariant: "threads:last_post_variant",
+  lastPostFormat: "threads:last_post_format",
   posts: "threads:posts",
 };
 
@@ -46,14 +117,23 @@ function getTaipeiDateString() {
   }).format(new Date());
 }
 
+function getDayNumber() {
+  return Math.floor(Date.now() / (1000 * 60 * 60 * 24));
+}
+
 function getTopicByDate() {
-  const dayNumber = Math.floor(Date.now() / (1000 * 60 * 60 * 24));
+  const dayNumber = getDayNumber();
   return TOPICS[dayNumber % TOPICS.length];
 }
 
 function getVariantByDate() {
-  const dayNumber = Math.floor(Date.now() / (1000 * 60 * 60 * 24));
+  const dayNumber = getDayNumber();
   return dayNumber % 2 === 0 ? "A" : "B";
+}
+
+function getContentFormatByDate() {
+  const dayNumber = getDayNumber();
+  return CONTENT_FORMATS[dayNumber % CONTENT_FORMATS.length];
 }
 
 function getTopicFromRequest(req) {
@@ -76,6 +156,19 @@ function getVariantFromRequest(req) {
   return variant === "B" ? "B" : "A";
 }
 
+function getContentFormatFromRequest(req) {
+  const formatKey = req.body?.formatKey || req.query?.formatKey;
+
+  if (!formatKey || formatKey === "auto") {
+    return getContentFormatByDate();
+  }
+
+  return (
+    CONTENT_FORMATS.find((format) => format.key === formatKey) ||
+    getContentFormatByDate()
+  );
+}
+
 function isAuthorized(req, cronSecret) {
   if (!cronSecret) return true;
 
@@ -90,9 +183,9 @@ function isAuthorized(req, cronSecret) {
   );
 }
 
-function buildTrackingUrl(topic, variant) {
+function buildTrackingUrl(topic, variant, contentFormat) {
   const date = getTaipeiDateString();
-  const utmContent = `${topic.key}_${variant}_${date}`;
+  const utmContent = `${topic.key}_${variant}_${contentFormat.key}_${date}`;
 
   return (
     `${websiteUrl}/?utm_source=threads` +
@@ -100,6 +193,10 @@ function buildTrackingUrl(topic, variant) {
     `&utm_campaign=finops_growth` +
     `&utm_content=${encodeURIComponent(utmContent)}`
   );
+}
+
+function hasBannedPhrase(text = "") {
+  return OPENING_BANS.some((phrase) => text.includes(phrase));
 }
 
 async function redisCommand(command, args = []) {
@@ -227,13 +324,24 @@ async function refreshThreadsTokenIfNeeded(force = false) {
   };
 }
 
-async function generatePost({ topic, variant, trackingUrl }) {
+async function generatePost({
+  topic,
+  variant,
+  trackingUrl,
+  contentFormat,
+  recentPosts = [],
+}) {
   const style =
     variant === "A"
-      ? "A版：開頭偏共鳴痛點，例如月光族、存不到錢、旅行預算失控。"
-      : "B版：開頭偏專業洞察，例如現金流、資產配置、退休準備、財務安全感。";
+      ? "A版：偏生活感與共鳴，不要像教學文。可以從月光族、月底壓力、旅行預算、發薪日、信用卡帳單等情境切入。"
+      : "B版：偏專業但口語，不要像報告。可以從現金流、固定支出率、財務安全感、退休準備、資產配置等角度切入。";
 
-  const prompt = `
+  const recentText = recentPosts
+    .slice(0, 5)
+    .map((post, index) => `${index + 1}. ${post.generatedText}`)
+    .join("\n\n");
+
+  const basePrompt = `
 你是 FinOps Planner Growth Agent，也是一位熟悉 Threads 社群經營的繁體中文內容策略顧問。
 
 請產出一篇適合 Threads 的繁體中文短文，用來推廣網站：
@@ -251,47 +359,76 @@ ${topic.concepts.join("、")}
 A/B 測試版本：
 ${style}
 
-貼文要求：
+今日貼文格式：
+${contentFormat.name}
+${contentFormat.instruction}
+
+最近幾篇貼文如下，請避免使用相同開頭、相同句型、相同段落邏輯：
+${recentText || "目前沒有可參考的近期貼文。"}
+
+內容要求：
 1. 使用繁體中文
 2. 口吻自然，像真實個人分享，不要太像廣告
-3. 300 字以內
-4. 一天只產出一篇短文
-5. 開頭要吸引注意
-6. 中間給 2 到 3 個簡單觀點
-7. 結尾自然引導使用 FinOps Planner
-8. 最後一定要放上這個追蹤連結：${trackingUrl}
-9. 不要使用 Markdown 標題格式
-10. 不要使用過多 emoji
-11. 加上 3 到 5 個相關 hashtag
+3. 180 到 280 字之間
+4. 開頭要有變化，可以是生活場景、問題、短句、感受、案例或觀點
+5. 不要每次都用條列式，不要固定寫成教學文
+6. 不要使用「三個提醒」、「三個關鍵」、「三個角度」、「三件事」、「從這三點開始」等句型
+7. 不要使用「第一、第二、第三」這種排序句型
+8. 不要用 Markdown 標題格式
+9. 不要使用過多 emoji，最多 1 個
+10. 結尾自然引導使用 FinOps Planner
+11. 最後一定要放上這個追蹤連結：${trackingUrl}
+12. 加上 3 到 5 個相關 hashtag
+
+禁止出現以下詞句：
+${OPENING_BANS.join("、")}
 `;
 
-  const response = await fetch("https://api.openai.com/v1/responses", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: "gpt-4.1-mini",
-      input: prompt,
-    }),
-  });
+  let lastText = "";
 
-  if (!response.ok) {
-    const text = await response.text();
-    throw new Error(`OpenAI API failed: ${text}`);
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    const prompt =
+      attempt === 1
+        ? basePrompt
+        : `${basePrompt}
+
+上一版仍然太像固定教學貼文，請重新生成。這次務必避免「三點式」與「三個提醒」架構，開頭必須換成生活情境、提問、案例或個人觀點。`;
+
+    const response = await fetch("https://api.openai.com/v1/responses", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "gpt-4.1-mini",
+        input: prompt,
+        temperature: 0.9,
+      }),
+    });
+
+    if (!response.ok) {
+      const text = await response.text();
+      throw new Error(`OpenAI API failed: ${text}`);
+    }
+
+    const data = await response.json();
+
+    const text =
+      data.output_text || data.output?.[0]?.content?.[0]?.text || "";
+
+    if (!text) {
+      throw new Error("OpenAI did not return generated text.");
+    }
+
+    lastText = text.trim();
+
+    if (!hasBannedPhrase(lastText)) {
+      return lastText;
+    }
   }
 
-  const data = await response.json();
-
-  const text =
-    data.output_text || data.output?.[0]?.content?.[0]?.text || "";
-
-  if (!text) {
-    throw new Error("OpenAI did not return generated text.");
-  }
-
-  return text.trim();
+  return lastText;
 }
 
 function sleep(ms) {
@@ -324,20 +461,16 @@ async function publishToThreads({ text, token }) {
 
     const containerId = createData.id;
 
-    // 等 Threads 後端建立 container
     await sleep(30000);
 
-    // 先查 container 狀態，避免直接 publish 時 Media Not Found
     let statusData = null;
 
     for (let attempt = 1; attempt <= 6; attempt++) {
       const statusUrl = new URL(
         `https://graph.threads.net/v1.0/${containerId}`
       );
-      statusUrl.searchParams.set(
-        "fields",
-        "id,status,status_code"
-      );
+
+      statusUrl.searchParams.set("fields", "id,status,status_code");
       statusUrl.searchParams.set("access_token", token);
 
       const statusResponse = await fetch(statusUrl.toString(), {
@@ -385,9 +518,7 @@ async function publishToThreads({ text, token }) {
       const errorSubcode = publishData?.error?.error_subcode;
 
       const shouldRetry =
-        errorCode === 2 ||
-        errorCode === 24 ||
-        errorSubcode === 4279009;
+        errorCode === 2 || errorCode === 24 || errorSubcode === 4279009;
 
       if (!shouldRetry || attempt === 3) {
         return {
@@ -422,14 +553,14 @@ async function publishToThreads({ text, token }) {
 async function savePostRecord(record) {
   const recordText = JSON.stringify(record);
 
-  const result = await redisPipeline([
+  return redisPipeline([
     ["LPUSH", REDIS_KEYS.posts, recordText],
     ["LTRIM", REDIS_KEYS.posts, "0", "49"],
   ]);
 }
 
 async function getRecentPosts() {
-  const result = await redisPipeline([["LRANGE", REDIS_KEYS.posts, "0", "9"],]);
+  const result = await redisPipeline([["LRANGE", REDIS_KEYS.posts, "0", "9"]]);
 
   const posts = result?.[0]?.result || [];
 
@@ -462,37 +593,39 @@ export default async function handler(req, res) {
 
     const action = req.body?.action || req.query?.action || "publish";
 
-if (action === "redis-health") {
-  const testKey = "threads:redis_health_check";
-  const testValue = `ok-${Date.now()}`;
+    if (action === "redis-health") {
+      const testKey = "threads:redis_health_check";
+      const testValue = `ok-${Date.now()}`;
 
-  await redisSet(testKey, testValue);
-  const readBack = await redisGet(testKey);
+      await redisSet(testKey, testValue);
+      const readBack = await redisGet(testKey);
 
-  const testRecord = {
-    id: `redis-test-${Date.now()}`,
-    date: getTaipeiDateString(),
-    topic: "Redis 測試",
-    topicKey: "redis-test",
-    variant: "TEST",
-    trackingUrl: websiteUrl,
-    generatedText: "This is a Redis write test.",
-    createdAt: new Date().toISOString(),
-    status: "redis-test",
-  };
+      const testRecord = {
+        id: `redis-test-${Date.now()}`,
+        date: getTaipeiDateString(),
+        topic: "Redis 測試",
+        topicKey: "redis-test",
+        variant: "TEST",
+        format: "Redis 測試",
+        formatKey: "redis-test",
+        trackingUrl: websiteUrl,
+        generatedText: "This is a Redis write test.",
+        createdAt: new Date().toISOString(),
+        status: "redis-test",
+      };
 
-  const saveResult = await savePostRecord(testRecord);
-  const posts = await getRecentPosts();
+      const saveResult = await savePostRecord(testRecord);
+      const posts = await getRecentPosts();
 
-  return res.status(200).json({
-    success: true,
-    redisWriteValue: testValue,
-    redisReadBack: readBack,
-    redisMatched: readBack === testValue,
-    saveResult,
-    posts,
-  });
-}
+      return res.status(200).json({
+        success: true,
+        redisWriteValue: testValue,
+        redisReadBack: readBack,
+        redisMatched: readBack === testValue,
+        saveResult,
+        posts,
+      });
+    }
 
     if (action === "recent-posts") {
       const posts = await getRecentPosts();
@@ -519,12 +652,17 @@ if (action === "redis-health") {
 
     const topic = getTopicFromRequest(req);
     const variant = getVariantFromRequest(req);
-    const trackingUrl = buildTrackingUrl(topic, variant);
+    const contentFormat = getContentFormatFromRequest(req);
+    const trackingUrl = buildTrackingUrl(topic, variant, contentFormat);
+
+    const recentPosts = await getRecentPosts();
 
     const generatedText = await generatePost({
       topic,
       variant,
       trackingUrl,
+      contentFormat,
+      recentPosts,
     });
 
     if (action === "preview") {
@@ -533,6 +671,7 @@ if (action === "redis-health") {
         mode: "preview",
         topic,
         variant,
+        contentFormat,
         trackingUrl,
         generatedText,
       });
@@ -548,6 +687,9 @@ if (action === "redis-health") {
         reason: "Already published today.",
         lastPostDate,
         lastPostText: await redisGet(REDIS_KEYS.lastPostText),
+        lastPostTopic: await redisGet(REDIS_KEYS.lastPostTopic),
+        lastPostVariant: await redisGet(REDIS_KEYS.lastPostVariant),
+        lastPostFormat: await redisGet(REDIS_KEYS.lastPostFormat),
       });
     }
 
@@ -574,6 +716,8 @@ if (action === "redis-health") {
       topic: topic.name,
       topicKey: topic.key,
       variant,
+      format: contentFormat.name,
+      formatKey: contentFormat.key,
       trackingUrl,
       generatedText,
       containerId: publishResult.containerId,
@@ -585,6 +729,7 @@ if (action === "redis-health") {
     await redisSet(REDIS_KEYS.lastPostText, generatedText);
     await redisSet(REDIS_KEYS.lastPostTopic, topic.name);
     await redisSet(REDIS_KEYS.lastPostVariant, variant);
+    await redisSet(REDIS_KEYS.lastPostFormat, contentFormat.name);
     await savePostRecord(record);
 
     return res.status(200).json({
@@ -593,6 +738,7 @@ if (action === "redis-health") {
       taipeiDate: today,
       topic,
       variant,
+      contentFormat,
       trackingUrl,
       tokenRefresh: {
         refreshed: refreshResult.refreshed,
