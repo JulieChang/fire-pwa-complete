@@ -4,13 +4,45 @@ import "./App.css";
 
 const isDev = window.location.search.includes("dev");
 
+const STORAGE_KEY = "finopsPlannerInputs";
+
+const defaultInputs = {
+  monthlyIncome: 100000,
+  annualBonus: 0,
+  mortgage: 25000,
+  personalLoan: 0,
+  insurance: 2000,
+  livingExpense: 25000,
+  otherExpense: 1000,
+  currentCash: 300000,
+  cashGoal: 1000000,
+  annualTravelBudget: 50000,
+  currentTravelFund: 0,
+  currentInvestmentAsset: 0,
+  minInvestment: 12000,
+  maxInvestment: 50000,
+  annualReturnRate: 6,
+  retirementMonthlyCashflow: 60000,
+  currentAge: 35,
+  retirementAge: 55,
+};
+
+const getInitialInputs = () => {
+  try {
+    const saved = window.localStorage.getItem(STORAGE_KEY);
+    return saved ? { ...defaultInputs, ...JSON.parse(saved) } : defaultInputs;
+  } catch {
+    return defaultInputs;
+  }
+};
+
 const formatNTD = (value) => {
   const number = Number(value) || 0;
   return `NT$ ${Math.round(number).toLocaleString("zh-TW")}`;
 };
 
 const clamp = (value, min = 0, max = 100) => {
-  return Math.min(Math.max(value, min), max);
+  return Math.min(Math.max(Number(value) || 0, min), max);
 };
 
 function InputCard({ label, value, onChange, suffix = "NTD" }) {
@@ -62,6 +94,16 @@ function AllocationCard({ title, amount, note }) {
       <p>{title}</p>
       <h2>{formatNTD(amount)}</h2>
       {note && <span>{note}</span>}
+    </div>
+  );
+}
+
+function HomeButton() {
+  return (
+    <div className="page-actions">
+      <a className="home-button" href="/">
+        ← 回到首頁
+      </a>
     </div>
   );
 }
@@ -166,6 +208,12 @@ function MonthlySavingRatePage() {
           <a href="/">回首頁</a> ｜ <a href="/sitemap.xml">Sitemap</a>
         </p>
       </section>
+
+      <footer className="site-footer">
+        <a href="/about">關於本站</a>
+        <a href="/privacy-policy">隱私權政策</a>
+        <a href="/contact">聯絡我們</a>
+      </footer>
     </main>
   );
 }
@@ -177,9 +225,11 @@ function SharePanel({ result }) {
 每月可分配金額：${formatNTD(result.available)}
 現金安全月數：${result.cashRunwayMonths.toFixed(1)} 個月
 6 個月現金目標：${formatNTD(result.sixMonthCashTarget)}
-距離安全水位還差：${formatNTD(result.cashGapToSixMonths)}
+自訂現金目標：${formatNTD(result.cashGoal)}
+距離自訂現金目標還差：${formatNTD(result.cashGapToCustomGoal)}
 建議每月補現金：${formatNTD(result.suggestedMonthlyCashTopUp)}
 財務自由目標資產：${formatNTD(result.financialFreedomTarget)}
+退休時預估投資資產：${formatNTD(result.projectedInvestmentAtRetirement)}
 目前還差：${formatNTD(result.financialFreedomGap)}
 
 用這個免費個人財務管理工具，試算你的現金流管理、每月存錢比例、投資配置與財務自由缺口：
@@ -232,13 +282,27 @@ ${pageUrl}`;
       </p>
 
       <div className="share-buttons">
-        <button type="button" onClick={nativeShare}>手機分享</button>
-        <a href={shareLinks.facebook} target="_blank" rel="noreferrer">Facebook</a>
-        <a href={shareLinks.threads} target="_blank" rel="noreferrer">Threads</a>
-        <a href={shareLinks.x} target="_blank" rel="noreferrer">X</a>
-        <a href={shareLinks.line} target="_blank" rel="noreferrer">LINE</a>
-        <button type="button" onClick={copyText}>複製給 IG</button>
-        <button type="button" onClick={savePdf}>存成 PDF</button>
+        <button type="button" onClick={nativeShare}>
+          手機分享
+        </button>
+        <a href={shareLinks.facebook} target="_blank" rel="noreferrer">
+          Facebook
+        </a>
+        <a href={shareLinks.threads} target="_blank" rel="noreferrer">
+          Threads
+        </a>
+        <a href={shareLinks.x} target="_blank" rel="noreferrer">
+          X
+        </a>
+        <a href={shareLinks.line} target="_blank" rel="noreferrer">
+          LINE
+        </a>
+        <button type="button" onClick={copyText}>
+          複製給 IG
+        </button>
+        <button type="button" onClick={savePdf}>
+          存成 PDF
+        </button>
       </div>
     </section>
   );
@@ -297,7 +361,14 @@ function PrivacyPolicyPage() {
         主要用於即時計算與畫面呈現。本網站不會要求你提供身分證字號、銀行帳號、信用卡號等高度敏感個人資料。
       </p>
 
-      <h2>二、Cookie 與第三方服務</h2>
+      <h2>二、瀏覽器本機儲存</h2>
+      <p>
+        為了讓使用者下次開啟網站時可以保留前一次輸入的試算資料，本網站會將收入、支出、現金目標、
+        投資設定與退休年齡等資料儲存在使用者自己的瀏覽器 localStorage 中。這些資料主要保存在使用者裝置端，
+        方便下次使用，不會作為個別化投資建議用途。
+      </p>
+
+      <h2>三、Cookie 與第三方服務</h2>
       <p>
         本網站可能使用 Cookie 或類似技術，以改善網站體驗、分析流量來源，或提供更合適的內容與廣告。
         Cookie 是儲存在使用者瀏覽器中的小型文字檔案，可協助網站記住部分使用狀態或提供統計分析。
@@ -313,7 +384,7 @@ function PrivacyPolicyPage() {
         停用 Cookie 後，部分網站功能或廣告體驗可能會受到影響。
       </p>
 
-      <h2>三、Google AdSense 廣告</h2>
+      <h2>四、Google AdSense 廣告</h2>
       <p>
         本網站可能顯示由 Google AdSense 提供的廣告。Google 作為第三方廣告供應商，可能會使用 Cookie
         或其他識別技術，根據使用者造訪本網站及其他網站的紀錄顯示相關廣告。
@@ -324,7 +395,7 @@ function PrivacyPolicyPage() {
         使用者可以前往 Google 廣告設定頁面停用個人化廣告。
       </p>
 
-      <h2>四、資料用途</h2>
+      <h2>五、資料用途</h2>
       <p>本網站可能將資料用於以下目的：</p>
       <ul>
         <li>提供財務試算與網站功能</li>
@@ -333,25 +404,25 @@ function PrivacyPolicyPage() {
         <li>顯示第三方廣告或衡量廣告成效</li>
       </ul>
 
-      <h2>五、第三方連結</h2>
+      <h2>六、第三方連結</h2>
       <p>
         本網站可能包含連往第三方網站的連結。當使用者點擊這些連結並離開本網站後，
         第三方網站的資料處理方式將依其各自的隱私權政策為準，本網站不對第三方網站的內容或資料處理方式負責。
       </p>
 
-      <h2>六、免責聲明</h2>
+      <h2>七、免責聲明</h2>
       <p>
         本網站提供的所有財務計算、比例建議與規劃結果僅供參考，不構成投資建議、理財顧問服務、
         法律建議、稅務建議或任何形式的保證。使用者應自行判斷並承擔相關決策責任。
       </p>
 
-      <h2>七、政策更新</h2>
+      <h2>八、政策更新</h2>
       <p>
         本網站可能因應服務調整、法規變更或第三方服務政策更新而修改本隱私權政策。
         最新版本將公布於本頁面。
       </p>
 
-      <p>最後更新日期：2026 年 4 月 28 日</p>
+      <p>最後更新日期：2026 年 5 月 6 日</p>
     </main>
   );
 }
@@ -393,18 +464,11 @@ function ContactPage() {
   );
 }
 
-function HomeButton() {
-  return (
-    <div className="page-actions">
-      <a className="home-button" href="/">
-        ← 回到首頁
-      </a>
-    </div>
-  );
-}
-
 export default function App() {
-    const path = window.location.pathname;
+  const path = window.location.pathname;
+
+  const [formData, setFormData] = useState(getInitialInputs);
+  const [submittedData, setSubmittedData] = useState(getInitialInputs);
 
   if (path === "/about") {
     return <AboutPage />;
@@ -417,41 +481,119 @@ export default function App() {
   if (path === "/contact") {
     return <ContactPage />;
   }
-  if (window.location.pathname === "/monthly-saving-rate") {
+
+  if (path === "/monthly-saving-rate") {
     return <MonthlySavingRatePage />;
   }
 
-  const [monthlyIncome, setMonthlyIncome] = useState(100000);
-  const [annualBonus, setAnnualBonus] = useState(0);
-  const [mortgage, setMortgage] = useState(25000);
-  const [personalLoan, setPersonalLoan] = useState(0);
-  const [insurance, setInsurance] = useState(2000);
-  const [livingExpense, setLivingExpense] = useState(25000);
-  const [utilities, setUtilities] = useState(1000);
-  const [currentCash, setCurrentCash] = useState(300000);
-  const [cashGoal, setCashGoal] = useState(1000000);
-  const [annualTravelBudget, setAnnualTravelBudget] = useState(50000);
-  const [currentTravelFund, setCurrentTravelFund] = useState(0);
-  const [currentInvestmentAsset, setCurrentInvestmentAsset] = useState(0);
-  const [minInvestment, setMinInvestment] = useState(12000);
-  const [maxInvestment, setMaxInvestment] = useState(50000);
-  const [annualReturnRate, setAnnualReturnRate] = useState(6);
-  const [retirementMonthlyCashflow, setRetirementMonthlyCashflow] = useState(60000);
+  const updateField = (field, value) => {
+    setFormData((prev) => ({
+      ...prev,
+      [field]: Number(value) || 0,
+    }));
+  };
+
+  const handleSubmit = (event) => {
+    event.preventDefault();
+
+    const normalizedData = {
+      ...formData,
+      retirementAge: Math.max(formData.retirementAge, formData.currentAge),
+      maxInvestment: Math.max(formData.maxInvestment, formData.minInvestment),
+    };
+
+    setFormData(normalizedData);
+    setSubmittedData(normalizedData);
+
+    try {
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(normalizedData));
+    } catch {
+      // localStorage unavailable, keep session calculation only
+    }
+
+    setTimeout(() => {
+      document.getElementById("dashboard")?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    }, 80);
+  };
+
+  const resetInputs = () => {
+    setFormData(defaultInputs);
+    setSubmittedData(defaultInputs);
+
+    try {
+      window.localStorage.removeItem(STORAGE_KEY);
+    } catch {
+      // ignore
+    }
+  };
 
   const result = useMemo(() => {
-    const fixedExpense = mortgage + personalLoan + insurance + livingExpense + utilities;
+    const {
+      monthlyIncome,
+      annualBonus,
+      mortgage,
+      personalLoan,
+      insurance,
+      livingExpense,
+      otherExpense,
+      currentCash,
+      cashGoal,
+      annualTravelBudget,
+      currentTravelFund,
+      currentInvestmentAsset,
+      minInvestment,
+      maxInvestment,
+      annualReturnRate,
+      retirementMonthlyCashflow,
+      currentAge,
+      retirementAge,
+    } = submittedData;
+
+    const fixedExpense =
+      mortgage + personalLoan + insurance + livingExpense + otherExpense;
+
     const monthlyBonusEquivalent = annualBonus / 12;
     const monthlyTotalIncome = monthlyIncome + monthlyBonusEquivalent;
     const available = monthlyTotalIncome - fixedExpense;
     const necessaryExpense = fixedExpense;
-    const cashRunwayMonths = necessaryExpense > 0 ? currentCash / necessaryExpense : 0;
+
+    const expenseRatio =
+      monthlyTotalIncome > 0 ? (fixedExpense / monthlyTotalIncome) * 100 : 0;
+
+    const savingRate =
+      monthlyTotalIncome > 0
+        ? ((Math.max(available, 0)) / monthlyTotalIncome) * 100
+        : 0;
+
+    const cashRunwayMonths =
+      necessaryExpense > 0 ? currentCash / necessaryExpense : 0;
+
     const sixMonthCashTarget = necessaryExpense * 6;
     const cashGapToSixMonths = Math.max(sixMonthCashTarget - currentCash, 0);
-    const suggestedMonthlyCashTopUp = cashGapToSixMonths > 0 ? cashGapToSixMonths / 12 : 0;
-    const cashProgress = sixMonthCashTarget > 0 ? (currentCash / sixMonthCashTarget) * 100 : 0;
-    const travelProgress = annualTravelBudget > 0 ? (currentTravelFund / annualTravelBudget) * 100 : 100;
+
+    const suggestedMonthlyCashTopUp =
+      cashGapToSixMonths > 0 ? cashGapToSixMonths / 12 : 0;
+
+    const cashProgress =
+      sixMonthCashTarget > 0 ? (currentCash / sixMonthCashTarget) * 100 : 0;
+
+    const customCashProgress =
+      cashGoal > 0 ? (currentCash / cashGoal) * 100 : 0;
+
+    const cashGapToCustomGoal = Math.max(cashGoal - currentCash, 0);
+
+    const travelProgress =
+      annualTravelBudget > 0 ? (currentTravelFund / annualTravelBudget) * 100 : 100;
+
     const remainingMonths = Math.max(12 - new Date().getMonth(), 1);
-    const requiredMonthlyTravelSaving = Math.max((annualTravelBudget - currentTravelFund) / remainingMonths, 0);
+
+    const requiredMonthlyTravelSaving = Math.max(
+      (annualTravelBudget - currentTravelFund) / remainingMonths,
+      0
+    );
 
     let cashAllocation = 0;
     let travelAllocation = 0;
@@ -479,7 +621,7 @@ export default function App() {
         travelAllocation = 0;
       }
 
-      if (currentCash >= cashGoal || currentCash >= sixMonthCashTarget) {
+      if (currentCash >= cashGoal && currentCash >= sixMonthCashTarget) {
         investmentAllocation += cashAllocation;
         cashAllocation = 0;
       }
@@ -491,15 +633,32 @@ export default function App() {
       }
     }
 
+    const allocationTotal = cashAllocation + travelAllocation + investmentAllocation;
+
+    const cashAllocationRatio =
+      allocationTotal > 0 ? (cashAllocation / allocationTotal) * 100 : 0;
+
+    const travelAllocationRatio =
+      allocationTotal > 0 ? (travelAllocation / allocationTotal) * 100 : 0;
+
+    const investmentAllocationRatio =
+      allocationTotal > 0 ? (investmentAllocation / allocationTotal) * 100 : 0;
+
     let cashStatus = "健康";
     let advice = "目前現金水位穩定，可平衡配置投資與旅遊基金。";
 
-    if (cashRunwayMonths < 3) {
+    if (available < 0) {
+      cashStatus = "入不敷出";
+      advice =
+        "目前每月固定支出已高於收入，建議優先檢視房貸、信貸、保險、生活費與其他支出，先讓現金流轉正。";
+    } else if (cashRunwayMonths < 3) {
       cashStatus = "危險";
-      advice = "現金水位低於 3 個月，建議暫緩增加風險性投資，優先補足緊急預備金。";
+      advice =
+        "現金水位低於 3 個月，建議暫緩增加風險性投資，優先補足緊急預備金。";
     } else if (cashRunwayMonths < 6) {
       cashStatus = "偏低";
-      advice = "現金水位低於 6 個月，建議提高現金配置，先補足安全水位。";
+      advice =
+        "現金水位低於 6 個月，建議提高現金配置，先補足安全水位。";
     } else if (cashRunwayMonths > 12) {
       cashStatus = "偏高";
       advice = "現金水位超過 12 個月，可考慮提高長期投資比例。";
@@ -510,24 +669,76 @@ export default function App() {
     const projectedInvestment =
       monthlyReturnRate > 0
         ? currentInvestmentAsset * Math.pow(1 + monthlyReturnRate, 12) +
-          investmentAllocation * ((Math.pow(1 + monthlyReturnRate, 12) - 1) / monthlyReturnRate)
+          investmentAllocation *
+            ((Math.pow(1 + monthlyReturnRate, 12) - 1) / monthlyReturnRate)
         : currentInvestmentAsset + investmentAllocation * 12;
 
     const financialFreedomTarget = retirementMonthlyCashflow * 12 * 25;
-    const financialFreedomGap = Math.max(financialFreedomTarget - currentInvestmentAsset, 0);
+
+    const financialFreedomGap = Math.max(
+      financialFreedomTarget - currentInvestmentAsset,
+      0
+    );
+
     const financialFreedomProgress =
-      financialFreedomTarget > 0 ? (currentInvestmentAsset / financialFreedomTarget) * 100 : 0;
+      financialFreedomTarget > 0
+        ? (currentInvestmentAsset / financialFreedomTarget) * 100
+        : 0;
+
+    const yearsToRetirement = Math.max(retirementAge - currentAge, 0);
+    const monthsToRetirement = yearsToRetirement * 12;
+
+    const projectedInvestmentAtRetirement =
+      monthsToRetirement > 0
+        ? monthlyReturnRate > 0
+          ? currentInvestmentAsset *
+              Math.pow(1 + monthlyReturnRate, monthsToRetirement) +
+            investmentAllocation *
+              ((Math.pow(1 + monthlyReturnRate, monthsToRetirement) - 1) /
+                monthlyReturnRate)
+          : currentInvestmentAsset + investmentAllocation * monthsToRetirement
+        : currentInvestmentAsset;
+
+    const retirementReadinessProgress =
+      financialFreedomTarget > 0
+        ? (projectedInvestmentAtRetirement / financialFreedomTarget) * 100
+        : 0;
+
+    const requiredMonthlyInvestmentToRetire =
+      monthsToRetirement > 0
+        ? monthlyReturnRate > 0
+          ? Math.max(
+              ((financialFreedomTarget -
+                currentInvestmentAsset *
+                  Math.pow(1 + monthlyReturnRate, monthsToRetirement)) *
+                monthlyReturnRate) /
+                (Math.pow(1 + monthlyReturnRate, monthsToRetirement) - 1),
+              0
+            )
+          : Math.max(
+              (financialFreedomTarget - currentInvestmentAsset) /
+                monthsToRetirement,
+              0
+            )
+        : financialFreedomGap;
 
     let investmentAdvice = "";
 
-    if (cashRunwayMonths < 6) {
-      investmentAdvice = "目前建議以補強現金水位為優先，投資維持最低定期定額即可。";
-    } else if (financialFreedomProgress < 25) {
-      investmentAdvice = "目前距離財務自由目標仍遠，建議以長期成長型資產為主，例如大盤型 ETF 或核心股票配置。";
-    } else if (financialFreedomProgress < 60) {
-      investmentAdvice = "已進入資產累積期，建議維持核心投資，同時控制單一標的集中風險。";
+    if (available < 0) {
+      investmentAdvice =
+        "目前現金流為負，退休與財務自由規劃應先暫緩加碼，優先處理每月收支結構。";
+    } else if (cashRunwayMonths < 6) {
+      investmentAdvice =
+        "目前建議以補強現金水位為優先，投資維持最低定期定額即可。";
+    } else if (retirementReadinessProgress < 50) {
+      investmentAdvice =
+        "依目前年齡、目標退休年齡與投資金額推估，退休準備仍需要加速。可評估提高每月投資金額、延後退休年齡或降低退休後每月現金流需求。";
+    } else if (retirementReadinessProgress < 100) {
+      investmentAdvice =
+        "目前退休進度已有基礎，但距離完整財務自由仍有缺口。建議維持核心投資，同時控制單一標的集中風險。";
     } else {
-      investmentAdvice = "財務自由進度已具規模，建議逐步提高現金流型資產與防禦型配置。";
+      investmentAdvice =
+        "依目前假設推估，退休時投資資產有機會達成財務自由目標。建議後續逐步納入現金流型資產與防禦型配置。";
     }
 
     return {
@@ -535,42 +746,39 @@ export default function App() {
       monthlyBonusEquivalent,
       monthlyTotalIncome,
       available,
+      expenseRatio,
+      savingRate,
       cashRunwayMonths,
       sixMonthCashTarget,
       cashGapToSixMonths,
       suggestedMonthlyCashTopUp,
       cashProgress,
+      customCashProgress,
+      cashGapToCustomGoal,
+      cashGoal,
+      currentCash,
       travelProgress,
       requiredMonthlyTravelSaving,
       cashAllocation,
       travelAllocation,
       investmentAllocation,
+      cashAllocationRatio,
+      travelAllocationRatio,
+      investmentAllocationRatio,
+      allocationTotal,
       cashStatus,
       advice,
       projectedInvestment,
       financialFreedomTarget,
       financialFreedomGap,
       financialFreedomProgress,
+      yearsToRetirement,
+      projectedInvestmentAtRetirement,
+      retirementReadinessProgress,
+      requiredMonthlyInvestmentToRetire,
       investmentAdvice,
     };
-  }, [
-    monthlyIncome,
-    annualBonus,
-    mortgage,
-    personalLoan,
-    insurance,
-    livingExpense,
-    utilities,
-    currentCash,
-    cashGoal,
-    annualTravelBudget,
-    currentTravelFund,
-    currentInvestmentAsset,
-    minInvestment,
-    maxInvestment,
-    annualReturnRate,
-    retirementMonthlyCashflow,
-  ]);
+  }, [submittedData]);
 
   return (
     <main className="app">
@@ -639,14 +847,158 @@ export default function App() {
         </p>
       </section>
 
-      <section id="calculator" className="dashboard">
+      <section id="calculator" className="section calculator-section">
+        <div className="section-header">
+          <p className="eyebrow-dark">Step 1｜輸入資料</p>
+          <h2>輸入你的財務資料</h2>
+          <p>
+            輸入後請按下「更新試算結果」，系統會在本機瀏覽器記住你前一次輸入的資料。
+          </p>
+        </div>
+
+        <form onSubmit={handleSubmit}>
+          <div className="form-grid">
+            <div className="form-section">
+              <h2>收入設定</h2>
+              <InputCard
+                label="每月收入"
+                value={formData.monthlyIncome}
+                onChange={(value) => updateField("monthlyIncome", value)}
+              />
+              <InputCard
+                label="每年獎金收入"
+                value={formData.annualBonus}
+                onChange={(value) => updateField("annualBonus", value)}
+              />
+            </div>
+
+            <div className="form-section">
+              <h2>固定支出</h2>
+              <InputCard
+                label="房貸"
+                value={formData.mortgage}
+                onChange={(value) => updateField("mortgage", value)}
+              />
+              <InputCard
+                label="信貸"
+                value={formData.personalLoan}
+                onChange={(value) => updateField("personalLoan", value)}
+              />
+              <InputCard
+                label="保險"
+                value={formData.insurance}
+                onChange={(value) => updateField("insurance", value)}
+              />
+              <InputCard
+                label="生活費"
+                value={formData.livingExpense}
+                onChange={(value) => updateField("livingExpense", value)}
+              />
+              <InputCard
+                label="其他支出"
+                value={formData.otherExpense}
+                onChange={(value) => updateField("otherExpense", value)}
+              />
+            </div>
+
+            <div className="form-section">
+              <h2>旅遊與現金水位</h2>
+              <InputCard
+                label="目前現金"
+                value={formData.currentCash}
+                onChange={(value) => updateField("currentCash", value)}
+              />
+              <InputCard
+                label="自訂現金目標"
+                value={formData.cashGoal}
+                onChange={(value) => updateField("cashGoal", value)}
+              />
+              <InputCard
+                label="年度旅遊預算"
+                value={formData.annualTravelBudget}
+                onChange={(value) => updateField("annualTravelBudget", value)}
+              />
+              <InputCard
+                label="目前旅遊基金"
+                value={formData.currentTravelFund}
+                onChange={(value) => updateField("currentTravelFund", value)}
+              />
+            </div>
+
+            <div className="form-section">
+              <h2>投資與退休設定</h2>
+              <InputCard
+                label="目前投資資產"
+                value={formData.currentInvestmentAsset}
+                onChange={(value) =>
+                  updateField("currentInvestmentAsset", value)
+                }
+              />
+              <InputCard
+                label="每月最低投資金額"
+                value={formData.minInvestment}
+                onChange={(value) => updateField("minInvestment", value)}
+              />
+              <InputCard
+                label="每月最高投資金額"
+                value={formData.maxInvestment}
+                onChange={(value) => updateField("maxInvestment", value)}
+              />
+              <InputCard
+                label="預期年化報酬率"
+                value={formData.annualReturnRate}
+                onChange={(value) => updateField("annualReturnRate", value)}
+                suffix="%"
+              />
+              <InputCard
+                label="退休後每月期待現金流"
+                value={formData.retirementMonthlyCashflow}
+                onChange={(value) =>
+                  updateField("retirementMonthlyCashflow", value)
+                }
+              />
+              <InputCard
+                label="目前年齡"
+                value={formData.currentAge}
+                onChange={(value) => updateField("currentAge", value)}
+                suffix="歲"
+              />
+              <InputCard
+                label="目標退休年齡"
+                value={formData.retirementAge}
+                onChange={(value) => updateField("retirementAge", value)}
+                suffix="歲"
+              />
+            </div>
+          </div>
+
+          <div className="form-actions">
+            <button type="submit" className="primary-button">
+              更新試算結果
+            </button>
+            <button type="button" className="secondary-button" onClick={resetInputs}>
+              重設預設值
+            </button>
+          </div>
+        </form>
+      </section>
+
+      <section id="dashboard" className="dashboard">
         <MetricCard
           title="每月總收入"
           value={formatNTD(result.monthlyTotalIncome)}
           note={`含獎金月均 ${formatNTD(result.monthlyBonusEquivalent)}`}
         />
-        <MetricCard title="每月可分配金額" value={formatNTD(result.available)} />
-        <MetricCard title="固定支出合計" value={formatNTD(result.fixedExpense)} />
+        <MetricCard
+          title="每月可分配金額"
+          value={formatNTD(result.available)}
+          note={`存錢率 ${clamp(result.savingRate).toFixed(1)}%`}
+        />
+        <MetricCard
+          title="固定支出合計"
+          value={formatNTD(result.fixedExpense)}
+          note={`支出率 ${clamp(result.expenseRatio).toFixed(1)}%`}
+        />
         <MetricCard
           title="現金安全月數"
           value={`${result.cashRunwayMonths.toFixed(1)} 個月`}
@@ -654,53 +1006,161 @@ export default function App() {
         />
       </section>
 
-      <section className="dashboard">
-        <MetricCard title="6 個月現金目標" value={formatNTD(result.sixMonthCashTarget)} />
-        <MetricCard title="距離 6 個月水位還差" value={formatNTD(result.cashGapToSixMonths)} />
-        <MetricCard
-          title="建議每月補現金"
-          value={formatNTD(result.suggestedMonthlyCashTopUp)}
-          note="以 12 個月補足估算"
-        />
-        <MetricCard
-          title="財務自由進度"
-          value={`${clamp(result.financialFreedomProgress).toFixed(1)}%`}
-        />
+      <section className="section visual-section">
+        <div className="section-header">
+          <p className="eyebrow-dark">Step 2｜財務儀表板</p>
+          <h2>可視化財務追蹤</h2>
+          <p>一次檢視現金安全水位、自訂現金目標、旅遊基金與財務自由進度。</p>
+        </div>
+
+        <div className="visual-grid">
+          <div className="visual-card">
+            <h3>現金安全水位追蹤</h3>
+            <ProgressBar value={result.cashProgress} />
+            <p className="progress-text">
+              6 個月現金目標達成率：{clamp(result.cashProgress).toFixed(1)}%
+            </p>
+            <p className="progress-text">
+              目標現金水位：{formatNTD(result.sixMonthCashTarget)}
+            </p>
+            <p className="progress-text">
+              距離 6 個月水位還差：{formatNTD(result.cashGapToSixMonths)}
+            </p>
+          </div>
+
+          <div className="visual-card">
+            <h3>自訂現金目標追蹤</h3>
+            <ProgressBar value={result.customCashProgress} />
+            <p className="progress-text">
+              自訂目標達成率：{clamp(result.customCashProgress).toFixed(1)}%
+            </p>
+            <p className="progress-text">
+              自訂現金目標：{formatNTD(result.cashGoal)}
+            </p>
+            <p className="progress-text">
+              距離自訂目標還差：{formatNTD(result.cashGapToCustomGoal)}
+            </p>
+          </div>
+
+          <div className="visual-card">
+            <h3>旅遊預算追蹤</h3>
+            <ProgressBar value={result.travelProgress} />
+            <p className="progress-text">
+              旅遊預算達成率：{clamp(result.travelProgress).toFixed(1)}%
+            </p>
+            <p className="progress-text">
+              建議每月旅遊沉澱：{formatNTD(result.requiredMonthlyTravelSaving)}
+            </p>
+          </div>
+
+          <div className="visual-card">
+            <h3>財務自由進度</h3>
+            <ProgressBar value={result.financialFreedomProgress} />
+            <p className="progress-text">
+              目前資產達成率：
+              {clamp(result.financialFreedomProgress).toFixed(1)}%
+            </p>
+            <p className="progress-text">
+              財務自由目標資產：{formatNTD(result.financialFreedomTarget)}
+            </p>
+            <p className="progress-text">
+              目前還差：{formatNTD(result.financialFreedomGap)}
+            </p>
+          </div>
+        </div>
       </section>
 
       <section className="section">
         <h2>本月建議分配</h2>
+
         <div className="allocation-grid">
-          <AllocationCard title="建議補現金" amount={result.cashAllocation} note="優先維持 6 個月安全水位" />
-          <AllocationCard title="建議旅遊基金" amount={result.travelAllocation} note="追蹤年度旅遊預算" />
-          <AllocationCard title="建議股票投資" amount={result.investmentAllocation} note="依最低與最高投資上限控管" />
+          <AllocationCard
+            title="建議補現金"
+            amount={result.cashAllocation}
+            note={`分配占比 ${clamp(result.cashAllocationRatio).toFixed(1)}%`}
+          />
+          <AllocationCard
+            title="建議旅遊基金"
+            amount={result.travelAllocation}
+            note={`分配占比 ${clamp(result.travelAllocationRatio).toFixed(1)}%`}
+          />
+          <AllocationCard
+            title="建議股票投資"
+            amount={result.investmentAllocation}
+            note={`分配占比 ${clamp(result.investmentAllocationRatio).toFixed(1)}%`}
+          />
         </div>
+
+        <div className="stacked-bar">
+          <div
+            className="stacked-segment cash"
+            style={{ width: `${clamp(result.cashAllocationRatio)}%` }}
+          />
+          <div
+            className="stacked-segment travel"
+            style={{ width: `${clamp(result.travelAllocationRatio)}%` }}
+          />
+          <div
+            className="stacked-segment investment"
+            style={{ width: `${clamp(result.investmentAllocationRatio)}%` }}
+          />
+        </div>
+
+        <div className="legend">
+          <span><i className="legend-dot cash" />補現金</span>
+          <span><i className="legend-dot travel" />旅遊基金</span>
+          <span><i className="legend-dot investment" />股票投資</span>
+        </div>
+
         <div className="advice-box">{result.advice}</div>
-      </section>
-
-      <section className="section two-column">
-        <div>
-          <h2>現金安全水位追蹤</h2>
-          <ProgressBar value={result.cashProgress} />
-          <p className="progress-text">6 個月現金目標達成率：{clamp(result.cashProgress).toFixed(1)}%</p>
-          <p className="progress-text">目標現金水位：{formatNTD(result.sixMonthCashTarget)}</p>
-        </div>
-
-        <div>
-          <h2>旅遊預算追蹤</h2>
-          <ProgressBar value={result.travelProgress} />
-          <p className="progress-text">旅遊預算達成率：{clamp(result.travelProgress).toFixed(1)}%</p>
-          <p className="progress-text">建議每月旅遊沉澱：{formatNTD(result.requiredMonthlyTravelSaving)}</p>
-        </div>
       </section>
 
       <section className="section">
         <h2>退休現金流與財務自由推估</h2>
-        <div className="allocation-grid">
-          <AllocationCard title="財務自由目標資產" amount={result.financialFreedomTarget} note="以 25 倍年支出估算" />
-          <AllocationCard title="目前還差" amount={result.financialFreedomGap} note="目標資產 - 目前投資資產" />
-          <AllocationCard title="12 個月後投資資產預估" amount={result.projectedInvestment} note="依目前每月投資與年化報酬率估算" />
+
+        <div className="dashboard compact-dashboard">
+          <MetricCard title="目前年齡" value={`${submittedData.currentAge} 歲`} />
+          <MetricCard
+            title="目標退休年齡"
+            value={`${submittedData.retirementAge} 歲`}
+          />
+          <MetricCard
+            title="距離退休"
+            value={`${result.yearsToRetirement} 年`}
+          />
+          <MetricCard
+            title="退休達成率"
+            value={`${clamp(result.retirementReadinessProgress).toFixed(1)}%`}
+          />
         </div>
+
+        <div className="allocation-grid">
+          <AllocationCard
+            title="財務自由目標資產"
+            amount={result.financialFreedomTarget}
+            note="以 25 倍退休年支出估算"
+          />
+          <AllocationCard
+            title="12 個月後投資資產預估"
+            amount={result.projectedInvestment}
+            note="依目前每月投資與年化報酬率估算"
+          />
+          <AllocationCard
+            title="退休時預估投資資產"
+            amount={result.projectedInvestmentAtRetirement}
+            note="依目前年齡、退休年齡與每月投資估算"
+          />
+        </div>
+
+        <div className="retirement-progress">
+          <h3>退休目標達成率</h3>
+          <ProgressBar value={result.retirementReadinessProgress} />
+          <p className="progress-text">
+            若要在 {submittedData.retirementAge} 歲退休，依目前假設推估，每月建議投資：
+            <strong> {formatNTD(result.requiredMonthlyInvestmentToRetire)}</strong>
+          </p>
+        </div>
+
         <div className="advice-box">{result.investmentAdvice}</div>
       </section>
 
@@ -756,40 +1216,6 @@ export default function App() {
         </p>
       </section>
 
-      <section className="form-grid">
-        <div className="form-section">
-          <h2>收入設定</h2>
-          <InputCard label="每月收入" value={monthlyIncome} onChange={setMonthlyIncome} />
-          <InputCard label="每年獎金收入" value={annualBonus} onChange={setAnnualBonus} />
-        </div>
-
-        <div className="form-section">
-          <h2>固定支出</h2>
-          <InputCard label="房貸" value={mortgage} onChange={setMortgage} />
-          <InputCard label="信貸" value={personalLoan} onChange={setPersonalLoan} />
-          <InputCard label="保險" value={insurance} onChange={setInsurance} />
-          <InputCard label="生活費" value={livingExpense} onChange={setLivingExpense} />
-          <InputCard label="水電瓦斯網路" value={utilities} onChange={setUtilities} />
-        </div>
-
-        <div className="form-section">
-          <h2>旅遊與現金水位</h2>
-          <InputCard label="年度旅遊預算" value={annualTravelBudget} onChange={setAnnualTravelBudget} />
-          <InputCard label="目前旅遊基金" value={currentTravelFund} onChange={setCurrentTravelFund} />
-          <InputCard label="目前現金" value={currentCash} onChange={setCurrentCash} />
-          <InputCard label="自訂現金目標" value={cashGoal} onChange={setCashGoal} />
-        </div>
-
-        <div className="form-section">
-          <h2>股票投資設定</h2>
-          <InputCard label="目前投資資產" value={currentInvestmentAsset} onChange={setCurrentInvestmentAsset} />
-          <InputCard label="每月最低投資金額" value={minInvestment} onChange={setMinInvestment} />
-          <InputCard label="每月最高投資金額" value={maxInvestment} onChange={setMaxInvestment} />
-          <InputCard label="預期年化報酬率" value={annualReturnRate} onChange={setAnnualReturnRate} suffix="%" />
-          <InputCard label="退休後每月期待現金流" value={retirementMonthlyCashflow} onChange={setRetirementMonthlyCashflow} />
-        </div>
-      </section>
-
       <section className="seo-content">
         <p style={{ textAlign: "center", marginTop: "40px" }}>
           <a href="/monthly-saving-rate">每月存錢比例指南</a> ｜{" "}
@@ -798,13 +1224,12 @@ export default function App() {
           </a>
         </p>
       </section>
-  
-  <footer className="site-footer">
-  <a href="/about">關於本站</a>
-  <a href="/privacy-policy">隱私權政策</a>
-  <a href="/contact">聯絡我們</a>
-</footer>
-      
+
+      <footer className="site-footer">
+        <a href="/about">關於本站</a>
+        <a href="/privacy-policy">隱私權政策</a>
+        <a href="/contact">聯絡我們</a>
+      </footer>
     </main>
   );
 }
