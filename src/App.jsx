@@ -140,6 +140,32 @@ const getTaiwanHouseholdWealthPosition = (totalNetWorth) => {
   };
 };
 
+const getWealthTierScore = (tier) => {
+  const scores = {
+    "A-9": 0,
+    A1: 3,
+    A2: 6,
+    A3: 9,
+    A4: 12,
+    A5: 15,
+    A6: 17,
+    A7: 19,
+    A8: 20,
+    A9: 20,
+    A10: 20,
+    A11: 20,
+    A12: 20,
+  };
+  return scores[tier] ?? 0;
+};
+
+const getTaiwanWealthDecileScore = (label) => {
+  if (label === "低於 D1") return 0;
+  const match = String(label).match(/D(\d+)/);
+  if (!match) return 0;
+  return clamp(Number(match[1]), 0, 9);
+};
+
 const getAgeIncomeBenchmark = (age) => {
   if (age < 30) return { label: "30 歲以下", conservative: 0.5, stable: 1, aggressive: 1.5 };
   if (age < 35) return { label: "30–34 歲", conservative: 1, stable: 1.5, aggressive: 2 };
@@ -403,12 +429,21 @@ function HomePage() {
     const monthsToNextTier = suggestedInvestment > 0 && wealthTier.nextThreshold
       ? Math.ceil(Math.log((wealthTier.nextThreshold * monthlyRate + suggestedInvestment) / (Math.max(investableNetWorth, 0) * monthlyRate + suggestedInvestment)) / Math.log(1 + monthlyRate))
       : null;
+    const scoreBreakdown = {
+      cashRunway: 25 * clamp(cashRunwayMonths / recommendedRunwayMonths, 0, 1),
+      fixedExpense: fixedExpenseRatio <= 40 ? 20 : fixedExpenseRatio <= 50 ? 16 : fixedExpenseRatio <= 60 ? 12 : fixedExpenseRatio <= 70 ? 8 : 4,
+      liquidWealthTier: getWealthTierScore(wealthTier.tier),
+      incomeMultiple: 15 * clamp(incomeMultiple / ageBenchmark.stable, 0, 1),
+      taiwanWealthPercentile: getTaiwanWealthDecileScore(taiwanHouseholdWealthPosition.label),
+      financialFreedom: 10 * clamp(financialFreedomProgress / 100, 0, 1),
+    };
     const score = clamp(
-      25 * clamp(cashRunwayMonths / recommendedRunwayMonths, 0, 1) +
-      20 * clamp(savingRate / 30, 0, 1) +
-      20 * clamp(1 - Math.max(fixedExpenseRatio - 50, 0) / 50, 0, 1) +
-      20 * clamp(incomeMultiple / ageBenchmark.stable, 0, 1) +
-      15 * clamp(financialFreedomProgress / 50, 0, 1),
+      scoreBreakdown.cashRunway +
+      scoreBreakdown.fixedExpense +
+      scoreBreakdown.liquidWealthTier +
+      scoreBreakdown.incomeMultiple +
+      scoreBreakdown.taiwanWealthPercentile +
+      scoreBreakdown.financialFreedom,
       0,
       100
     );
@@ -418,7 +453,7 @@ function HomePage() {
       savingRate, fixedExpenseRatio, investmentRate, ageBenchmark, stableBenchmarkAsset, conservativeBenchmarkAsset,
       aggressiveBenchmarkAsset, incomeMultiple, gapToStableBenchmark, gapToStableBenchmarkPercent, wealthTier, totalWealthTier, taiwanHouseholdWealthPosition, gapToTaiwanMedianWealth, gapToNextTaiwanWealthDecile, gapToNextTier, gapToNextTotalTier, travelProgress,
       monthlyTravelSaving, suggestedCashTopUp, suggestedTravelTopUp, suggestedInvestment, financialFreedomTarget,
-      financialFreedomProgress, financialFreedomGap, projectedInvestmentAtRetirement, monthsToNextTier, score,
+      financialFreedomProgress, financialFreedomGap, projectedInvestmentAtRetirement, monthsToNextTier, score, scoreBreakdown,
     };
   }, [calculatedInputs]);
 
@@ -475,9 +510,9 @@ function HomePage() {
               <small>個月</small>
             </div>
             <div>
-              <span>同齡比較</span>
-              <strong>{result.gapToStableBenchmark >= 0 ? "+" : ""}{formatPercent(result.gapToStableBenchmarkPercent, 0)}</strong>
-              <small>{result.gapToStableBenchmark >= 0 ? "高於穩健基準" : "低於穩健基準"}</small>
+              <span>家庭分位</span>
+              <strong>{result.taiwanHouseholdWealthPosition.label}</strong>
+              <small>{result.taiwanHouseholdWealthPosition.percentile}</small>
             </div>
             <div>
               <span>自由進度</span>
@@ -676,6 +711,24 @@ function HomePage() {
               <p>依總淨資產 {formatNTD(result.totalNetWorth)} 判斷，含自住房與貸款；用來觀察完整資產位置。</p>
             </div>
           </div>
+        </div>
+        <div className="benchmark-explanation score-explanation">
+          <h3>財務健康分數如何計算？</h3>
+          <p>
+            財務健康分數是本工具的綜合風險分數，不是官方排名，也不是同齡 PR 值。分數由六個構面組成：
+            現金安全水位 25 分、固定支出壓力 20 分、流動財務階層 20 分、收入倍數檢查點 15 分、台灣家庭財富分位 10 分、財務自由進度 10 分。
+          </p>
+          <div className="score-breakdown-grid">
+            <div><span>現金安全水位</span><strong>{result.scoreBreakdown.cashRunway.toFixed(1)} / 25</strong></div>
+            <div><span>固定支出壓力</span><strong>{result.scoreBreakdown.fixedExpense.toFixed(1)} / 20</strong></div>
+            <div><span>流動財務階層</span><strong>{result.scoreBreakdown.liquidWealthTier.toFixed(1)} / 20</strong></div>
+            <div><span>收入倍數檢查點</span><strong>{result.scoreBreakdown.incomeMultiple.toFixed(1)} / 15</strong></div>
+            <div><span>台灣家庭財富分位</span><strong>{result.scoreBreakdown.taiwanWealthPercentile.toFixed(1)} / 10</strong></div>
+            <div><span>財務自由進度</span><strong>{result.scoreBreakdown.financialFreedom.toFixed(1)} / 10</strong></div>
+          </div>
+          <p>
+            首頁「診斷報告預覽」改以財務健康分數、流動階層、現金水位與台灣家庭財富分位為主；同齡收入倍數比較保留在完整報告中，避免被誤解為官方同齡資產排名。
+          </p>
         </div>
         <div className="metrics-grid">
           <MetricCard title="可投資淨資產" value={formatNTD(result.investableNetWorth)} note="現金＋投資資產－信貸與其他負債，不含自住房。" />

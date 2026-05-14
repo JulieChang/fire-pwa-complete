@@ -783,3 +783,41 @@ summary { cursor: pointer; font-weight: 900; }
   color: #172554;
   white-space: nowrap;
 }
+
+.score-explanation {
+  margin-top: 18px;
+}
+
+.score-breakdown-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin: 18px 0;
+}
+
+.score-breakdown-grid div {
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+}
+
+.score-breakdown-grid span {
+  display: block;
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.score-breakdown-grid strong {
+  display: block;
+  margin-top: 6px;
+  color: #0f172a;
+  font-size: 20px;
+}
+
+@media (max-width: 760px) {
+  .score-breakdown-grid {
+    grid-template-columns: 1fr;
+  }
+}
