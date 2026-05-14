@@ -94,6 +94,52 @@ const getWealthTier = (investableNetWorth) => {
   return [...tiers].reverse().find((item) => investableNetWorth >= item.threshold) || tiers[0];
 };
 
+
+const taiwanHouseholdWealthDeciles = [
+  { label: "D1", threshold: 1430000, percentile: "約高於 10% 家庭", description: "低於或接近第 1 十分位門檻" },
+  { label: "D2", threshold: 3190000, percentile: "約高於 20% 家庭", description: "接近第 2 十分位門檻" },
+  { label: "D3", threshold: 4900000, percentile: "約高於 30% 家庭", description: "接近第 3 十分位門檻" },
+  { label: "D4", threshold: 6770000, percentile: "約高於 40% 家庭", description: "接近第 4 十分位門檻" },
+  { label: "D5", threshold: 8940000, percentile: "約高於 50% 家庭", description: "接近台灣家庭財富中位數" },
+  { label: "D6", threshold: 11710000, percentile: "約高於 60% 家庭", description: "高於家庭財富中位數、接近第 6 十分位" },
+  { label: "D7", threshold: 15470000, percentile: "約高於 70% 家庭", description: "接近第 7 十分位門檻" },
+  { label: "D8", threshold: 21340000, percentile: "約高於 80% 家庭", description: "接近第 8 十分位門檻" },
+  { label: "D9", threshold: 33910000, percentile: "約高於 90% 家庭", description: "接近第 9 十分位門檻" },
+];
+
+const TAIWAN_HOUSEHOLD_WEALTH_MEDIAN = 8940000;
+const TAIWAN_OFFICIAL_SOURCE_NOTE = "資料口徑：主計總處國富統計 110 年底家庭財富分配；單位為家庭淨資產，不是個人同齡排名。家庭收支調查另提供所得收入者按年齡組別資料，可作為收入比較來源。";
+
+const getTaiwanHouseholdWealthPosition = (totalNetWorth) => {
+  const value = Number(totalNetWorth) || 0;
+  if (value < taiwanHouseholdWealthDeciles[0].threshold) {
+    return {
+      label: "低於 D1",
+      percentile: "低於第 1 十分位門檻",
+      description: "總淨資產低於家庭財富第 1 十分位門檻",
+      nextLabel: "D1",
+      nextThreshold: taiwanHouseholdWealthDeciles[0].threshold,
+    };
+  }
+
+  let current = taiwanHouseholdWealthDeciles[0];
+  let next = null;
+  for (let i = 0; i < taiwanHouseholdWealthDeciles.length; i += 1) {
+    const item = taiwanHouseholdWealthDeciles[i];
+    const following = taiwanHouseholdWealthDeciles[i + 1] || null;
+    if (value >= item.threshold) {
+      current = item;
+      next = following;
+    }
+  }
+
+  return {
+    ...current,
+    nextLabel: next?.label || null,
+    nextThreshold: next?.threshold || null,
+  };
+};
+
 const getAgeIncomeBenchmark = (age) => {
   if (age < 30) return { label: "30 歲以下", conservative: 0.5, stable: 1, aggressive: 1.5 };
   if (age < 35) return { label: "30–34 歲", conservative: 1, stable: 1.5, aggressive: 2 };
@@ -214,7 +260,7 @@ function ArticleLinks() {
 
 function SharePanel({ result }) {
   const pageUrl = window.location.origin;
-  const shareText = `我的 Personal FinOps 診斷：流動財務階層 ${result.wealthTier.tier}｜${result.wealthTier.name}，總資產階層 ${result.totalWealthTier.tier}｜${result.totalWealthTier.name}，現金安全月數 ${result.cashRunwayMonths.toFixed(1)} 個月，收入倍數 ${result.incomeMultiple.toFixed(1)} 倍，財務自由進度 ${result.financialFreedomProgress.toFixed(1)}%。一起試算：${pageUrl}`;
+  const shareText = `我的 Personal FinOps 診斷：流動財務階層 ${result.wealthTier.tier}｜${result.wealthTier.name}，總資產階層 ${result.totalWealthTier.tier}｜${result.totalWealthTier.name}，現金安全月數 ${result.cashRunwayMonths.toFixed(1)} 個月，收入倍數檢查點 ${result.incomeMultiple.toFixed(1)} 倍，財務自由進度 ${result.financialFreedomProgress.toFixed(1)}%。一起試算：${pageUrl}`;
   const encodedText = encodeURIComponent(shareText);
   const encodedUrl = encodeURIComponent(pageUrl);
   const copyText = async () => {
@@ -317,6 +363,9 @@ function HomePage() {
     const gapToStableBenchmarkPercent = stableBenchmarkAsset > 0 ? (gapToStableBenchmark / stableBenchmarkAsset) * 100 : 0;
     const wealthTier = getWealthTier(investableNetWorth);
     const totalWealthTier = getWealthTier(totalNetWorth);
+    const taiwanHouseholdWealthPosition = getTaiwanHouseholdWealthPosition(totalNetWorth);
+    const gapToTaiwanMedianWealth = totalNetWorth - TAIWAN_HOUSEHOLD_WEALTH_MEDIAN;
+    const gapToNextTaiwanWealthDecile = taiwanHouseholdWealthPosition.nextThreshold ? Math.max(taiwanHouseholdWealthPosition.nextThreshold - totalNetWorth, 0) : 0;
     const gapToNextTier = wealthTier.nextThreshold ? Math.max(wealthTier.nextThreshold - investableNetWorth, 0) : 0;
     const gapToNextTotalTier = totalWealthTier.nextThreshold ? Math.max(totalWealthTier.nextThreshold - totalNetWorth, 0) : 0;
     const annualTravelBudget = toNumber(data.annualTravelBudget);
@@ -367,7 +416,7 @@ function HomePage() {
       monthlyTotalIncome, annualIncome, fixedExpense, available, currentCash, currentInvestmentAsset,
       investableNetWorth, totalNetWorth, estimatedMortgageBalance, estimatedPersonalLoanBalance, cashRunwayMonths, recommendedRunwayMonths, recommendedCashTarget, cashGap, recommendedRunwayReason,
       savingRate, fixedExpenseRatio, investmentRate, ageBenchmark, stableBenchmarkAsset, conservativeBenchmarkAsset,
-      aggressiveBenchmarkAsset, incomeMultiple, gapToStableBenchmark, gapToStableBenchmarkPercent, wealthTier, totalWealthTier, gapToNextTier, gapToNextTotalTier, travelProgress,
+      aggressiveBenchmarkAsset, incomeMultiple, gapToStableBenchmark, gapToStableBenchmarkPercent, wealthTier, totalWealthTier, taiwanHouseholdWealthPosition, gapToTaiwanMedianWealth, gapToNextTaiwanWealthDecile, gapToNextTier, gapToNextTotalTier, travelProgress,
       monthlyTravelSaving, suggestedCashTopUp, suggestedTravelTopUp, suggestedInvestment, financialFreedomTarget,
       financialFreedomProgress, financialFreedomGap, projectedInvestmentAtRetirement, monthsToNextTier, score,
     };
@@ -387,7 +436,7 @@ function HomePage() {
           <h1>看懂你的現金流、財務階層與同齡資產落差</h1>
           <p>
             輸入收入、家庭責任、支出、資產與負債，快速產出財務健康分數、
-            現金安全水位、A-9–A12 財務階層、同齡收入倍數比較與下一步改善建議。
+            現金安全水位、A-9–A12 財務階層、台灣家庭財富分位、收入倍數檢查點與下一步改善建議。
           </p>
 
           <div className="hero-actions">
@@ -398,7 +447,7 @@ function HomePage() {
           <div className="hero-pills">
             <span>財務健康分數</span>
             <span>A-9–A12 財務階層</span>
-            <span>同齡收入倍數</span>
+            <span>官方家庭財富分位</span>
           </div>
         </div>
 
@@ -442,7 +491,7 @@ function HomePage() {
       <section className="section intro-content">
         <h2>這不是投資明牌工具，而是個人財務作戰儀表板</h2>
         <p>很多人每個月都有收入，也有投資，但真正困難的是：不知道現金水位是否安全、旅遊預算會不會超支、每月到底該投資多少，以及距離理想生活還有多遠。Personal FinOps Planner 用企業 FinOps 的邏輯，把收入、固定支出、資產、負債與人生目標拆成可管理的資金桶，協助你建立長期可執行的財務秩序。</p>
-        <p>診斷結果中的同齡比較採用「收入倍數法」作為估算基準，財務階層則以可投資淨資產分級。這些結果不是官方個人排名，也不是為了製造焦慮，而是協助你看懂自己目前的位置、風險與下一步。</p>
+        <p>診斷結果會區分「官方統計參考」與「退休規劃模型」。官方統計參考採台灣家庭財富分位口徑；收入倍數檢查點則是退休規劃常見模型，不是官方個人排名。</p>
       </section>
 
       <section className="section" id="calculator">
@@ -478,7 +527,7 @@ function HomePage() {
               <span>02</span>
               <div>
                 <h3>收入</h3>
-                <p>用來計算年收入、儲蓄率、收入倍數與同齡基準落差。</p>
+                <p>用來計算年收入、儲蓄率與收入倍數檢查點。</p>
               </div>
             </div>
             <div className="form-grid compact">
@@ -634,8 +683,10 @@ function HomePage() {
           <MetricCard title="總淨資產" value={formatNTD(result.totalNetWorth)} note="含自住房與貸款。若未填實際本金，系統以月繳 × 剩餘期數估算。" />
           <MetricCard title="流動階層差距" value={result.wealthTier.nextTier ? formatNTD(result.gapToNextTier) : "已達 A12"} note={result.wealthTier.nextTier ? `距離 ${result.wealthTier.nextTier}，依可投資淨資產計算。` : "重點轉向資產保護與現金流管理。"} />
           <MetricCard title="總資產階層差距" value={result.totalWealthTier.nextTier ? formatNTD(result.gapToNextTotalTier) : "已達 A12"} note={result.totalWealthTier.nextTier ? `距離 ${result.totalWealthTier.nextTier}，依總淨資產計算。` : "已達資產金字塔最高區間。"} />
-          <MetricCard title="同齡收入倍數" value={`${result.incomeMultiple.toFixed(1)} 倍`} note={`${result.ageBenchmark.label} 穩健基準約 ${result.ageBenchmark.stable} 倍年收入。`} tone={benchmarkTone} />
-          <MetricCard title="同齡穩健基準落差" value={formatNTD(result.gapToStableBenchmark)} note={result.gapToStableBenchmark >= 0 ? "目前高於穩健基準。" : "目前低於穩健基準，建議提高儲蓄與投資紀律。"} tone={benchmarkTone} />
+          <MetricCard title="台灣家庭財富分位" value={result.taiwanHouseholdWealthPosition.label} note={`${result.taiwanHouseholdWealthPosition.percentile}；依總淨資產與主計總處家庭財富分位估算。`} />
+          <MetricCard title="與家庭財富中位數差距" value={formatNTD(result.gapToTaiwanMedianWealth)} note={result.gapToTaiwanMedianWealth >= 0 ? "高於 110 年底家庭財富中位數 894 萬。" : "低於 110 年底家庭財富中位數 894 萬。"} tone={result.gapToTaiwanMedianWealth >= 0 ? "good" : "warning"} />
+          <MetricCard title="收入倍數檢查點" value={`${result.incomeMultiple.toFixed(1)} 倍`} note={`${result.ageBenchmark.label} 退休規劃模型約 ${result.ageBenchmark.stable} 倍年收入，非官方排名。`} tone={benchmarkTone} />
+          <MetricCard title="收入倍數差距" value={formatNTD(result.gapToStableBenchmark)} note={result.gapToStableBenchmark >= 0 ? "高於模型檢查點。" : "低於模型檢查點，建議提高儲蓄與投資紀律。"} tone={benchmarkTone} />
           <MetricCard title="現金安全月數" value={`${result.cashRunwayMonths.toFixed(1)} 個月`} note={`${result.recommendedRunwayReason}。建議 ${result.recommendedRunwayMonths} 個月。`} tone={cashTone} />
           <MetricCard title="固定支出比" value={formatPercent(result.fixedExpenseRatio)} note="超過 60% 代表現金流壓力偏高。" tone={expenseTone} />
           <MetricCard title="每月可分配金額" value={formatNTD(result.available)} note="月收入＋獎金月平均－固定支出。" tone={result.available >= 0 ? "good" : "danger"} />
@@ -643,18 +694,20 @@ function HomePage() {
         </div>
 
         <div className="benchmark-explanation">
-          <h3>為什麼「同齡穩健基準落差」可能是負值？</h3>
+          <h3>官方統計參考與收入倍數模型有什麼不同？</h3>
           <p>
-            本工具採用「收入倍數法」估算同齡基準，不是官方個人資產排名。計算方式為：
-            <strong> 同齡穩健基準 = 年收入 × 年齡區間穩健倍數</strong>。
-            目前報告使用 {result.ageBenchmark.label} 的穩健倍數 {result.ageBenchmark.stable} 倍，
-            年收入為 {formatNTD(result.annualIncome)}，因此穩健基準約為 {formatNTD(result.stableBenchmarkAsset)}。
+            <strong>台灣家庭財富分位</strong>採用主計總處國富統計的家庭財富分配口徑，
+            以你的總淨資產 {formatNTD(result.totalNetWorth)} 對照家庭淨資產十分位門檻。
+            目前約落在 <strong>{result.taiwanHouseholdWealthPosition.label}</strong>，{result.taiwanHouseholdWealthPosition.percentile}。
+            若要到下一個官方分位 {result.taiwanHouseholdWealthPosition.nextLabel || "最高區間以上"}，約還差 {result.taiwanHouseholdWealthPosition.nextThreshold ? formatNTD(result.gapToNextTaiwanWealthDecile) : "無需再追下一分位"}。
           </p>
           <p>
-            「同齡穩健基準落差」= 可投資淨資產 {formatNTD(result.investableNetWorth)} − 同齡穩健基準 {formatNTD(result.stableBenchmarkAsset)}
-            = {formatNTD(result.gapToStableBenchmark)}。若結果為負值，代表目前可投資淨資產低於此年齡與收入條件下的穩健參考值；
-            它不是失敗分數，而是提醒你仍有資產累積空間。
+            <strong>收入倍數檢查點</strong>不是官方同齡資產排名，而是退休規劃常見模型。計算方式為：
+            <strong> 收入倍數基準 = 年收入 × 年齡區間倍數</strong>。
+            目前報告使用 {result.ageBenchmark.label} 的模型倍數 {result.ageBenchmark.stable} 倍，年收入為 {formatNTD(result.annualIncome)}，
+            因此模型基準約為 {formatNTD(result.stableBenchmarkAsset)}；可投資淨資產 {formatNTD(result.investableNetWorth)} 減去模型基準後，差距為 {formatNTD(result.gapToStableBenchmark)}。
           </p>
+          <p className="source-note">{TAIWAN_OFFICIAL_SOURCE_NOTE}</p>
         </div>
       </section>
 
@@ -675,7 +728,7 @@ function HomePage() {
             <li>先確認現金水位是否達到 {result.recommendedRunwayMonths} 個月；這個數字由扶養責任與收入穩定性決定，不是單純由年齡決定。</li>
             <li>固定支出比若超過 60%，避免再增加長期貸款或高額固定承諾。</li>
             <li>投資金額建議採上下限制度，避免市場情緒影響現金流安全。</li>
-            <li>每半年重新試算一次，追蹤財務階層與同齡收入倍數是否持續改善。</li>
+            <li>每半年重新試算一次，追蹤財務階層、官方家庭財富分位與收入倍數檢查點是否持續改善。</li>
           </ul>
         </div>
       </section>
