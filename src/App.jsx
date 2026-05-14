@@ -108,7 +108,7 @@ const taiwanHouseholdWealthDeciles = [
 ];
 
 const TAIWAN_HOUSEHOLD_WEALTH_MEDIAN = 8940000;
-const TAIWAN_OFFICIAL_SOURCE_NOTE = "資料口徑：主計總處國富統計 110 年底家庭財富分配；單位為家庭淨資產，不是個人同齡排名。家庭收支調查另提供所得收入者按年齡組別資料，可作為收入比較來源。";
+const TAIWAN_OFFICIAL_SOURCE_NOTE = "資料來源：行政院主計總處國富統計，110 年家庭財富分配統計，113 年發布。114 年家庭財富分配統計預計於 117 年 4 月下旬發布。";
 
 const getTaiwanHouseholdWealthPosition = (totalNetWorth) => {
   const value = Number(totalNetWorth) || 0;
