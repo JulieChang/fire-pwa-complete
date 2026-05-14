@@ -4,7 +4,7 @@ import { articles } from "./articles";
 import "./App.css";
 
 const isDev = window.location.search.includes("dev");
-const STORAGE_KEY = "finopsPlannerInputsV2";
+const STORAGE_KEY = "finopsPlannerInputsV3";
 
 const defaultInputs = {
   age: 30,
@@ -214,7 +214,7 @@ function ArticleLinks() {
 
 function SharePanel({ result }) {
   const pageUrl = window.location.origin;
-  const shareText = `我的 Personal FinOps 診斷：財務階層 ${result.wealthTier.tier}｜${result.wealthTier.name}，現金安全月數 ${result.cashRunwayMonths.toFixed(1)} 個月，收入倍數 ${result.incomeMultiple.toFixed(1)} 倍，財務自由進度 ${result.financialFreedomProgress.toFixed(1)}%。一起試算：${pageUrl}`;
+  const shareText = `我的 Personal FinOps 診斷：流動財務階層 ${result.wealthTier.tier}｜${result.wealthTier.name}，總資產階層 ${result.totalWealthTier.tier}｜${result.totalWealthTier.name}，現金安全月數 ${result.cashRunwayMonths.toFixed(1)} 個月，收入倍數 ${result.incomeMultiple.toFixed(1)} 倍，財務自由進度 ${result.financialFreedomProgress.toFixed(1)}%。一起試算：${pageUrl}`;
   const encodedText = encodeURIComponent(shareText);
   const encodedUrl = encodeURIComponent(pageUrl);
   const copyText = async () => {
@@ -316,7 +316,9 @@ function HomePage() {
     const gapToStableBenchmark = investableNetWorth - stableBenchmarkAsset;
     const gapToStableBenchmarkPercent = stableBenchmarkAsset > 0 ? (gapToStableBenchmark / stableBenchmarkAsset) * 100 : 0;
     const wealthTier = getWealthTier(investableNetWorth);
+    const totalWealthTier = getWealthTier(totalNetWorth);
     const gapToNextTier = wealthTier.nextThreshold ? Math.max(wealthTier.nextThreshold - investableNetWorth, 0) : 0;
+    const gapToNextTotalTier = totalWealthTier.nextThreshold ? Math.max(totalWealthTier.nextThreshold - totalNetWorth, 0) : 0;
     const annualTravelBudget = toNumber(data.annualTravelBudget);
     const currentTravelFund = toNumber(data.currentTravelFund);
     const travelProgress = annualTravelBudget > 0 ? (currentTravelFund / annualTravelBudget) * 100 : 100;
@@ -365,7 +367,7 @@ function HomePage() {
       monthlyTotalIncome, annualIncome, fixedExpense, available, currentCash, currentInvestmentAsset,
       investableNetWorth, totalNetWorth, estimatedMortgageBalance, estimatedPersonalLoanBalance, cashRunwayMonths, recommendedRunwayMonths, recommendedCashTarget, cashGap, recommendedRunwayReason,
       savingRate, fixedExpenseRatio, investmentRate, ageBenchmark, stableBenchmarkAsset, conservativeBenchmarkAsset,
-      aggressiveBenchmarkAsset, incomeMultiple, gapToStableBenchmark, gapToStableBenchmarkPercent, wealthTier, gapToNextTier, travelProgress,
+      aggressiveBenchmarkAsset, incomeMultiple, gapToStableBenchmark, gapToStableBenchmarkPercent, wealthTier, totalWealthTier, gapToNextTier, gapToNextTotalTier, travelProgress,
       monthlyTravelSaving, suggestedCashTopUp, suggestedTravelTopUp, suggestedInvestment, financialFreedomTarget,
       financialFreedomProgress, financialFreedomGap, projectedInvestmentAtRetirement, monthsToNextTier, score,
     };
@@ -467,7 +469,7 @@ function HomePage() {
               <NumberInput label="年齡" value={inputs.age} onChange={(v) => update("age", v)} suffix="歲" />
               <SelectInput label="家庭型態" value={inputs.householdType} onChange={(v) => update("householdType", v)} options={householdOptions} />
               <NumberInput label="家庭總人數" value={inputs.householdMembers} onChange={(v) => update("householdMembers", v)} suffix="人" />
-              <NumberInput label="需由你負擔的家人人數" value={inputs.dependents} onChange={(v) => update("dependents", v)} suffix="人" hint="只負責自己請填 0；此欄不含本人。" tooltip="此欄是指除了你自己以外，主要需要靠你的收入負擔生活費的人數。只負責本人費用請填 0；若主要負擔 1 位父母、伴侶或小孩就填 1。" />
+              <NumberInput label="需由你負擔的家人人數" value={inputs.dependents} onChange={(v) => update("dependents", v)} suffix="人" hint="只負責自己請填 0；此欄不含本人。若主要負擔 1 位父母、伴侶或小孩就填 1。" />
             </div>
           </section>
 
@@ -611,23 +613,48 @@ function HomePage() {
             <h2>{Math.round(result.score)} / 100</h2>
             <ProgressBar value={result.score} />
           </div>
-          <div className="tier-badge">
-            <span>{result.wealthTier.tier}</span>
-            <strong>{result.wealthTier.name}</strong>
-            <p>{result.wealthTier.description}</p>
+          <div className="dual-tier-card">
+            <div className="tier-badge compact-tier">
+              <p className="tier-label">流動財務階層</p>
+              <span>{result.wealthTier.tier}</span>
+              <strong>{result.wealthTier.name}</strong>
+              <p>依可投資淨資產 {formatNTD(result.investableNetWorth)} 判斷，不含自住房；用來觀察現金流、投資與財務自由能力。</p>
+            </div>
+            <div className="tier-badge compact-tier muted-tier">
+              <p className="tier-label">總資產階層</p>
+              <span>{result.totalWealthTier.tier}</span>
+              <strong>{result.totalWealthTier.name}</strong>
+              <p>依總淨資產 {formatNTD(result.totalNetWorth)} 判斷，含自住房與貸款；用來觀察完整資產位置。</p>
+            </div>
           </div>
         </div>
         <div className="metrics-grid">
           <MetricCard title="可投資淨資產" value={formatNTD(result.investableNetWorth)} note="現金＋投資資產－信貸與其他負債，不含自住房。" />
           <MetricCard title="貸款剩餘估算" value={formatNTD(result.estimatedMortgageBalance + result.estimatedPersonalLoanBalance)} note="基本版以月繳 × 剩餘期數估算；進階欄位可填實際本金。" />
           <MetricCard title="總淨資產" value={formatNTD(result.totalNetWorth)} note="含自住房與貸款。若未填實際本金，系統以月繳 × 剩餘期數估算。" />
-          <MetricCard title="距離下一階層" value={result.wealthTier.nextTier ? formatNTD(result.gapToNextTier) : "已達 A12"} note={result.monthsToNextTier ? `依建議投資金額估算約 ${Math.max(result.monthsToNextTier, 0)} 個月。` : "重點轉向資產保護與現金流管理。"} />
+          <MetricCard title="流動階層差距" value={result.wealthTier.nextTier ? formatNTD(result.gapToNextTier) : "已達 A12"} note={result.wealthTier.nextTier ? `距離 ${result.wealthTier.nextTier}，依可投資淨資產計算。` : "重點轉向資產保護與現金流管理。"} />
+          <MetricCard title="總資產階層差距" value={result.totalWealthTier.nextTier ? formatNTD(result.gapToNextTotalTier) : "已達 A12"} note={result.totalWealthTier.nextTier ? `距離 ${result.totalWealthTier.nextTier}，依總淨資產計算。` : "已達資產金字塔最高區間。"} />
           <MetricCard title="同齡收入倍數" value={`${result.incomeMultiple.toFixed(1)} 倍`} note={`${result.ageBenchmark.label} 穩健基準約 ${result.ageBenchmark.stable} 倍年收入。`} tone={benchmarkTone} />
           <MetricCard title="同齡穩健基準落差" value={formatNTD(result.gapToStableBenchmark)} note={result.gapToStableBenchmark >= 0 ? "目前高於穩健基準。" : "目前低於穩健基準，建議提高儲蓄與投資紀律。"} tone={benchmarkTone} />
           <MetricCard title="現金安全月數" value={`${result.cashRunwayMonths.toFixed(1)} 個月`} note={`${result.recommendedRunwayReason}。建議 ${result.recommendedRunwayMonths} 個月。`} tone={cashTone} />
           <MetricCard title="固定支出比" value={formatPercent(result.fixedExpenseRatio)} note="超過 60% 代表現金流壓力偏高。" tone={expenseTone} />
           <MetricCard title="每月可分配金額" value={formatNTD(result.available)} note="月收入＋獎金月平均－固定支出。" tone={result.available >= 0 ? "good" : "danger"} />
           <MetricCard title="財務自由進度" value={formatPercent(result.financialFreedomProgress)} note={`目標資產：${formatNTD(result.financialFreedomTarget)}`} />
+        </div>
+
+        <div className="benchmark-explanation">
+          <h3>為什麼「同齡穩健基準落差」可能是負值？</h3>
+          <p>
+            本工具採用「收入倍數法」估算同齡基準，不是官方個人資產排名。計算方式為：
+            <strong> 同齡穩健基準 = 年收入 × 年齡區間穩健倍數</strong>。
+            目前報告使用 {result.ageBenchmark.label} 的穩健倍數 {result.ageBenchmark.stable} 倍，
+            年收入為 {formatNTD(result.annualIncome)}，因此穩健基準約為 {formatNTD(result.stableBenchmarkAsset)}。
+          </p>
+          <p>
+            「同齡穩健基準落差」= 可投資淨資產 {formatNTD(result.investableNetWorth)} − 同齡穩健基準 {formatNTD(result.stableBenchmarkAsset)}
+            = {formatNTD(result.gapToStableBenchmark)}。若結果為負值，代表目前可投資淨資產低於此年齡與收入條件下的穩健參考值；
+            它不是失敗分數，而是提醒你仍有資產累積空間。
+          </p>
         </div>
       </section>
 

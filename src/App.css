@@ -515,6 +515,60 @@ a { color: inherit; }
 }
 .tier-badge strong { display: block; margin-top: 12px; font-size: 24px; }
 .tier-badge p { color: var(--muted); margin-bottom: 0; }
+
+.dual-tier-card {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  padding: 0 !important;
+  background: transparent !important;
+  border: 0 !important;
+}
+
+.compact-tier {
+  padding: 20px;
+}
+
+.compact-tier span {
+  width: 56px;
+  height: 56px;
+  border-radius: 18px;
+  font-size: 24px;
+}
+
+.compact-tier strong {
+  font-size: 20px;
+}
+
+.tier-label {
+  margin: 0 0 12px;
+  color: var(--muted);
+  font-weight: 900;
+}
+
+.muted-tier span {
+  background: #0f766e;
+}
+
+.benchmark-explanation {
+  margin-top: 18px;
+  padding: 22px;
+  border-radius: 22px;
+  background: #f8fafc;
+  border: 1px solid var(--line);
+}
+
+.benchmark-explanation h3 {
+  margin: 0 0 10px;
+  font-size: 20px;
+}
+
+.benchmark-explanation p {
+  margin: 8px 0 0;
+  color: var(--muted);
+  line-height: 1.9;
+}
+
 .metrics-grid, .allocation-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
