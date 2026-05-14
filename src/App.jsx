@@ -513,10 +513,10 @@ function HomePage() {
       <section className="hero">
         <div className="hero-copy">
           <p className="eyebrow">Personal FinOps 財務診斷工具</p>
-          <h1>看懂你的現金流、財務階層與同齡資產落差</h1>
+          <h1>看懂你的現金流、財務階層與同齡落差</h1>
           <p>
             輸入收入、家庭責任、支出、資產與負債，快速產出財務健康分數、
-            現金安全水位、A-9–A12 財務階層、台灣家庭財富分位、收入倍數檢查點與下一步改善建議。
+            現金安全水位、A-9至A12 財務階層、台灣家庭財富分位、收入倍數檢查點與下一步改善建議。
           </p>
 
           <div className="hero-actions">
