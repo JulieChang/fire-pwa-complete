@@ -400,32 +400,57 @@ function HomePage() {
     const monthlyTravelSaving = Math.max((annualTravelBudget - currentTravelFund) / 12, 0);
     const minInvestment = toNumber(data.minInvestment);
     const maxInvestment = toNumber(data.maxInvestment);
-    let suggestedCashTopUp = 0;
-    let suggestedTravelTopUp = 0;
-    let suggestedInvestment = 0;
-    if (available > 0) {
-      if (cashRunwayMonths < 3) {
-        suggestedCashTopUp = Math.round(available * 0.75);
-        suggestedInvestment = Math.min(minInvestment, Math.max(available - suggestedCashTopUp, 0));
-      } else if (cashRunwayMonths < recommendedRunwayMonths) {
-        suggestedCashTopUp = Math.round(available * 0.45);
-        suggestedTravelTopUp = Math.min(monthlyTravelSaving, Math.max(available * 0.15, 0));
-        suggestedInvestment = Math.min(maxInvestment, Math.max(available - suggestedCashTopUp - suggestedTravelTopUp, minInvestment));
-      } else {
-        suggestedTravelTopUp = Math.min(monthlyTravelSaving, Math.max(available * 0.15, 0));
-        suggestedInvestment = Math.min(maxInvestment, Math.max(available - suggestedTravelTopUp, minInvestment));
-        suggestedCashTopUp = Math.max(available - suggestedTravelTopUp - suggestedInvestment, 0);
-      }
-    }
-    const investmentRate = monthlyTotalIncome > 0 ? (suggestedInvestment / monthlyTotalIncome) * 100 : 0;
     const financialFreedomTarget = toNumber(data.retirementMonthlyCashflow) * 12 * 25;
     const financialFreedomProgress = financialFreedomTarget > 0 ? (investableNetWorth / financialFreedomTarget) * 100 : 0;
     const financialFreedomGap = financialFreedomTarget - investableNetWorth;
     const monthsToRetirement = Math.max((toNumber(data.retirementAge) - toNumber(data.age)) * 12, 0);
     const monthlyRate = Math.pow(1 + toNumber(data.annualReturnRate) / 100, 1 / 12) - 1;
+    const growthFactor = Math.pow(1 + monthlyRate, monthsToRetirement);
+    const annuityFactor = monthlyRate === 0
+      ? monthsToRetirement
+      : (growthFactor - 1) / monthlyRate;
+    const requiredMonthlyInvestmentForTarget = monthsToRetirement > 0 && annuityFactor > 0
+      ? Math.max((financialFreedomTarget - currentInvestmentAsset * growthFactor) / annuityFactor, 0)
+      : Math.max(financialFreedomTarget - currentInvestmentAsset, 0);
+    let suggestedCashTopUp = 0;
+    let suggestedTravelTopUp = 0;
+    let suggestedInvestment = 0;
+    let allocationStrategyNote = "";
+    if (available > 0) {
+      const cappedMinimumInvestment = Math.min(minInvestment, available);
+      if (cashRunwayMonths < recommendedRunwayMonths) {
+        suggestedInvestment = Math.min(maxInvestment, cappedMinimumInvestment);
+        suggestedTravelTopUp = 0;
+        suggestedCashTopUp = Math.max(available - suggestedInvestment, 0);
+        allocationStrategyNote = "現金水位低於建議值，因此本月優先補現金，旅遊基金暫緩，投資先維持最低定期定額。";
+      } else {
+        const baselineProjection = currentInvestmentAsset * growthFactor + cappedMinimumInvestment * annuityFactor;
+        const baselineRetirementRate = financialFreedomTarget > 0 ? (baselineProjection / financialFreedomTarget) * 100 : 0;
+        if (baselineRetirementRate < 80) {
+          suggestedTravelTopUp = Math.min(monthlyTravelSaving, Math.max(available * 0.1, 0));
+          const targetInvestment = Math.max(cappedMinimumInvestment, Math.min(requiredMonthlyInvestmentForTarget, maxInvestment));
+          suggestedInvestment = Math.min(targetInvestment, Math.max(available - suggestedTravelTopUp, 0));
+          suggestedCashTopUp = Math.max(available - suggestedTravelTopUp - suggestedInvestment, 0);
+          allocationStrategyNote = "現金水位已達標但退休時達成率偏低，因此提高投資比重，旅遊基金維持低檔。";
+        } else {
+          suggestedTravelTopUp = Math.min(monthlyTravelSaving, Math.max(available * 0.2, 0));
+          suggestedInvestment = Math.min(maxInvestment, Math.max(cappedMinimumInvestment, available * 0.5));
+          suggestedCashTopUp = Math.max(available - suggestedTravelTopUp - suggestedInvestment, 0);
+          allocationStrategyNote = "現金水位與退休節奏相對穩定，可維持投資紀律，並保留旅遊與生活彈性。";
+        }
+      }
+    } else {
+      allocationStrategyNote = "本月可分配金額為負，應優先檢查固定支出與貸款壓力。";
+    }
+    suggestedCashTopUp = Math.round(suggestedCashTopUp);
+    suggestedTravelTopUp = Math.round(suggestedTravelTopUp);
+    suggestedInvestment = Math.round(suggestedInvestment);
+    const investmentRate = monthlyTotalIncome > 0 ? (suggestedInvestment / monthlyTotalIncome) * 100 : 0;
     const projectedInvestmentAtRetirement = monthsToRetirement === 0
       ? currentInvestmentAsset
-      : currentInvestmentAsset * Math.pow(1 + monthlyRate, monthsToRetirement) + suggestedInvestment * ((Math.pow(1 + monthlyRate, monthsToRetirement) - 1) / (monthlyRate || 1));
+      : currentInvestmentAsset * growthFactor + suggestedInvestment * annuityFactor;
+    const projectedFinancialFreedomRate = financialFreedomTarget > 0 ? (projectedInvestmentAtRetirement / financialFreedomTarget) * 100 : 0;
+    const projectedFinancialFreedomGap = financialFreedomTarget - projectedInvestmentAtRetirement;
     const monthsToNextTier = suggestedInvestment > 0 && wealthTier.nextThreshold
       ? Math.ceil(Math.log((wealthTier.nextThreshold * monthlyRate + suggestedInvestment) / (Math.max(investableNetWorth, 0) * monthlyRate + suggestedInvestment)) / Math.log(1 + monthlyRate))
       : null;
@@ -453,7 +478,7 @@ function HomePage() {
       savingRate, fixedExpenseRatio, investmentRate, ageBenchmark, stableBenchmarkAsset, conservativeBenchmarkAsset,
       aggressiveBenchmarkAsset, incomeMultiple, gapToStableBenchmark, gapToStableBenchmarkPercent, wealthTier, totalWealthTier, taiwanHouseholdWealthPosition, gapToTaiwanMedianWealth, gapToNextTaiwanWealthDecile, gapToNextTier, gapToNextTotalTier, travelProgress,
       monthlyTravelSaving, suggestedCashTopUp, suggestedTravelTopUp, suggestedInvestment, financialFreedomTarget,
-      financialFreedomProgress, financialFreedomGap, projectedInvestmentAtRetirement, monthsToNextTier, score, scoreBreakdown,
+      financialFreedomProgress, financialFreedomGap, projectedInvestmentAtRetirement, projectedFinancialFreedomRate, projectedFinancialFreedomGap, requiredMonthlyInvestmentForTarget, allocationStrategyNote, monthsToNextTier, score, scoreBreakdown,
     };
   }, [calculatedInputs]);
 
@@ -743,7 +768,8 @@ function HomePage() {
           <MetricCard title="現金安全月數" value={`${result.cashRunwayMonths.toFixed(1)} 個月`} note={`${result.recommendedRunwayReason}。建議 ${result.recommendedRunwayMonths} 個月。`} tone={cashTone} />
           <MetricCard title="固定支出比" value={formatPercent(result.fixedExpenseRatio)} note="超過 60% 代表現金流壓力偏高。" tone={expenseTone} />
           <MetricCard title="每月可分配金額" value={formatNTD(result.available)} note="月收入＋獎金月平均－固定支出。" tone={result.available >= 0 ? "good" : "danger"} />
-          <MetricCard title="財務自由進度" value={formatPercent(result.financialFreedomProgress)} note={`目標資產：${formatNTD(result.financialFreedomTarget)}`} />
+          <MetricCard title="財務自由目前進度" value={formatPercent(result.financialFreedomProgress)} note={`目前可投資淨資產 ÷ 目標資產 ${formatNTD(result.financialFreedomTarget)}`} />
+          <MetricCard title="退休時財務自由達成率" value={formatPercent(result.projectedFinancialFreedomRate)} note={`退休時預估缺口：${formatNTD(Math.max(result.projectedFinancialFreedomGap, 0))}`} tone={result.projectedFinancialFreedomRate >= 100 ? "good" : result.projectedFinancialFreedomRate >= 80 ? "warning" : "danger"} />
         </div>
 
         <div className="benchmark-explanation">
@@ -773,14 +799,16 @@ function HomePage() {
           <MetricCard title="建議補現金" value={formatNTD(result.suggestedCashTopUp)} note={`建議現金目標：${formatNTD(result.recommendedCashTarget)}，缺口：${formatNTD(result.cashGap)}`} tone={cashTone} />
           <MetricCard title="建議旅遊基金" value={formatNTD(result.suggestedTravelTopUp)} note={`年度旅遊基金完成率：${formatPercent(result.travelProgress)}`} />
           <MetricCard title="建議投資金額" value={formatNTD(result.suggestedInvestment)} note={`投資率約 ${formatPercent(result.investmentRate)}，可依風險承受度調整。`} />
-          <MetricCard title="退休時預估投資資產" value={formatNTD(result.projectedInvestmentAtRetirement)} note={`距離財務自由目標仍差：${formatNTD(result.financialFreedomGap)}`} />
+          <MetricCard title="退休時預估投資資產" value={formatNTD(result.projectedInvestmentAtRetirement)} note={`依目前建議投資金額、退休年齡與年化報酬率估算。`} />
+          <MetricCard title="退休時財務自由達成率" value={formatPercent(result.projectedFinancialFreedomRate)} note={result.projectedFinancialFreedomGap > 0 ? `預估退休時距離目標仍差：${formatNTD(result.projectedFinancialFreedomGap)}` : "依目前節奏，退休時預估可達成財務自由目標。"} tone={result.projectedFinancialFreedomRate >= 100 ? "good" : result.projectedFinancialFreedomRate >= 80 ? "warning" : "danger"} />
         </div>
         <div className="advice-box">
           <h3>下一步建議</h3>
+          <p>{result.allocationStrategyNote}</p>
           <ul>
             <li>先確認現金水位是否達到 {result.recommendedRunwayMonths} 個月；這個數字由扶養責任與收入穩定性決定，不是單純由年齡決定。</li>
             <li>固定支出比若超過 60%，避免再增加長期貸款或高額固定承諾。</li>
-            <li>投資金額建議採上下限制度，避免市場情緒影響現金流安全。</li>
+            <li>投資金額建議採上下限制度，並參考退休時財務自由達成率；若現金水位不足，投資先維持最低額。</li>
             <li>每半年重新試算一次，追蹤財務階層、官方家庭財富分位與收入倍數檢查點是否持續改善。</li>
           </ul>
         </div>
