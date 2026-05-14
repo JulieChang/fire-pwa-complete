@@ -7,38 +7,38 @@ const isDev = window.location.search.includes("dev");
 const STORAGE_KEY = "finopsPlannerInputsV2";
 
 const defaultInputs = {
-  age: 40,
+  age: 30,
   householdType: "single",
   householdMembers: 1,
   dependents: 0,
   incomeStability: "stable",
-  monthlyIncome: 100000,
-  annualBonus: 0,
+  monthlyIncome: 48000,
+  annualBonus: 96000,
   otherAnnualIncome: 0,
-  mortgage: 27154,
-  mortgageRemainingMonths: 294,
-  personalLoan: 33025,
-  personalLoanRemainingMonths: 12,
-  insurance: 24587,
-  livingExpense: 35000,
-  utilities: 3000,
-  transportation: 4000,
+  mortgage: 0,
+  mortgageRemainingMonths: 0,
+  personalLoan: 0,
+  personalLoanRemainingMonths: 0,
+  insurance: 4000,
+  livingExpense: 22000,
+  utilities: 2500,
+  transportation: 2500,
   familySupport: 0,
-  otherFixedExpense: 2500,
-  currentCash: 300000,
-  cashGoal: 300000,
-  currentInvestmentAsset: 3000000,
+  otherFixedExpense: 2000,
+  currentCash: 180000,
+  cashGoal: 180000,
+  currentInvestmentAsset: 300000,
   homeValue: 0,
-  mortgageBalance: 6180009,
-  personalLoanBalance: 484720,
+  mortgageBalance: 0,
+  personalLoanBalance: 0,
   otherDebt: 0,
-  annualTravelBudget: 70000,
-  currentTravelFund: 0,
-  minInvestment: 15000,
-  maxInvestment: 30000,
-  annualReturnRate: 7,
-  retirementMonthlyCashflow: 60000,
-  retirementAge: 50,
+  annualTravelBudget: 60000,
+  currentTravelFund: 15000,
+  minInvestment: 6000,
+  maxInvestment: 12000,
+  annualReturnRate: 6,
+  retirementMonthlyCashflow: 50000,
+  retirementAge: 60,
 };
 
 const householdOptions = {
@@ -232,8 +232,10 @@ function SharePanel({ result }) {
 }
 
 function HomePage() {
-  const [inputs, setInputs] = useState(getInitialInputs);
+  const [inputs, setInputs] = useState(() => getInitialInputs());
+  const [calculatedInputs, setCalculatedInputs] = useState(() => getInitialInputs());
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [hasCalculated, setHasCalculated] = useState(false);
 
   const update = (key, value) => {
     const next = { ...inputs, [key]: value };
@@ -241,28 +243,49 @@ function HomePage() {
     try { window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next)); } catch { /* ignore */ }
   };
 
+  const handleCalculate = () => {
+    setCalculatedInputs(inputs);
+    setHasCalculated(true);
+    try { window.localStorage.setItem(STORAGE_KEY, JSON.stringify(inputs)); } catch { /* ignore */ }
+    setTimeout(() => document.getElementById("diagnosis-report")?.scrollIntoView({ behavior: "smooth", block: "start" }), 80);
+  };
+
+  const resetToDefault = () => {
+    setInputs(defaultInputs);
+    setCalculatedInputs(defaultInputs);
+    setHasCalculated(false);
+    try { window.localStorage.setItem(STORAGE_KEY, JSON.stringify(defaultInputs)); } catch { /* ignore */ }
+  };
+
   const result = useMemo(() => {
-    const monthlyIncome = toNumber(inputs.monthlyIncome);
-    const annualBonus = toNumber(inputs.annualBonus);
-    const otherAnnualIncome = toNumber(inputs.otherAnnualIncome);
+    const data = calculatedInputs;
+    const monthlyIncome = toNumber(data.monthlyIncome);
+    const annualBonus = toNumber(data.annualBonus);
+    const otherAnnualIncome = toNumber(data.otherAnnualIncome);
     const monthlyTotalIncome = monthlyIncome + annualBonus / 12 + otherAnnualIncome / 12;
     const annualIncome = monthlyIncome * 12 + annualBonus + otherAnnualIncome;
-    const fixedExpense = toNumber(inputs.mortgage) + toNumber(inputs.personalLoan) + toNumber(inputs.insurance) + toNumber(inputs.livingExpense) + toNumber(inputs.utilities) + toNumber(inputs.transportation) + toNumber(inputs.familySupport) + toNumber(inputs.otherFixedExpense);
+    const fixedExpense = toNumber(data.mortgage) + toNumber(data.personalLoan) + toNumber(data.insurance) + toNumber(data.livingExpense) + toNumber(data.utilities) + toNumber(data.transportation) + toNumber(data.familySupport) + toNumber(data.otherFixedExpense);
     const available = monthlyTotalIncome - fixedExpense;
-    const currentCash = toNumber(inputs.currentCash);
-    const currentInvestmentAsset = toNumber(inputs.currentInvestmentAsset);
-    const investableNetWorth = currentCash + currentInvestmentAsset - toNumber(inputs.personalLoanBalance) - toNumber(inputs.otherDebt);
-    const totalNetWorth = currentCash + currentInvestmentAsset + toNumber(inputs.homeValue) - toNumber(inputs.mortgageBalance) - toNumber(inputs.personalLoanBalance) - toNumber(inputs.otherDebt);
+    const currentCash = toNumber(data.currentCash);
+    const currentInvestmentAsset = toNumber(data.currentInvestmentAsset);
+    const estimatedMortgageBalance = toNumber(data.mortgageBalance) > 0
+      ? toNumber(data.mortgageBalance)
+      : toNumber(data.mortgage) * toNumber(data.mortgageRemainingMonths);
+    const estimatedPersonalLoanBalance = toNumber(data.personalLoanBalance) > 0
+      ? toNumber(data.personalLoanBalance)
+      : toNumber(data.personalLoan) * toNumber(data.personalLoanRemainingMonths);
+    const investableNetWorth = currentCash + currentInvestmentAsset - estimatedPersonalLoanBalance - toNumber(data.otherDebt);
+    const totalNetWorth = currentCash + currentInvestmentAsset + toNumber(data.homeValue) - estimatedMortgageBalance - estimatedPersonalLoanBalance - toNumber(data.otherDebt);
     const cashRunwayMonths = fixedExpense > 0 ? currentCash / fixedExpense : 0;
     let recommendedRunwayMonths = 6;
-    if (toNumber(inputs.dependents) >= 1) recommendedRunwayMonths = 9;
-    if (toNumber(inputs.dependents) >= 2) recommendedRunwayMonths = 12;
-    if (inputs.incomeStability !== "stable") recommendedRunwayMonths += 3;
+    if (toNumber(data.dependents) >= 1) recommendedRunwayMonths = 9;
+    if (toNumber(data.dependents) >= 2) recommendedRunwayMonths = 12;
+    if (data.incomeStability !== "stable") recommendedRunwayMonths += 3;
     const recommendedCashTarget = fixedExpense * recommendedRunwayMonths;
     const cashGap = recommendedCashTarget - currentCash;
     const savingRate = monthlyTotalIncome > 0 ? (available / monthlyTotalIncome) * 100 : 0;
     const fixedExpenseRatio = monthlyTotalIncome > 0 ? (fixedExpense / monthlyTotalIncome) * 100 : 0;
-    const ageBenchmark = getAgeIncomeBenchmark(toNumber(inputs.age));
+    const ageBenchmark = getAgeIncomeBenchmark(toNumber(data.age));
     const stableBenchmarkAsset = annualIncome * ageBenchmark.stable;
     const conservativeBenchmarkAsset = annualIncome * ageBenchmark.conservative;
     const aggressiveBenchmarkAsset = annualIncome * ageBenchmark.aggressive;
@@ -270,12 +293,12 @@ function HomePage() {
     const gapToStableBenchmark = investableNetWorth - stableBenchmarkAsset;
     const wealthTier = getWealthTier(investableNetWorth);
     const gapToNextTier = wealthTier.nextThreshold ? Math.max(wealthTier.nextThreshold - investableNetWorth, 0) : 0;
-    const annualTravelBudget = toNumber(inputs.annualTravelBudget);
-    const currentTravelFund = toNumber(inputs.currentTravelFund);
+    const annualTravelBudget = toNumber(data.annualTravelBudget);
+    const currentTravelFund = toNumber(data.currentTravelFund);
     const travelProgress = annualTravelBudget > 0 ? (currentTravelFund / annualTravelBudget) * 100 : 100;
     const monthlyTravelSaving = Math.max((annualTravelBudget - currentTravelFund) / 12, 0);
-    const minInvestment = toNumber(inputs.minInvestment);
-    const maxInvestment = toNumber(inputs.maxInvestment);
+    const minInvestment = toNumber(data.minInvestment);
+    const maxInvestment = toNumber(data.maxInvestment);
     let suggestedCashTopUp = 0;
     let suggestedTravelTopUp = 0;
     let suggestedInvestment = 0;
@@ -294,11 +317,11 @@ function HomePage() {
       }
     }
     const investmentRate = monthlyTotalIncome > 0 ? (suggestedInvestment / monthlyTotalIncome) * 100 : 0;
-    const financialFreedomTarget = toNumber(inputs.retirementMonthlyCashflow) * 12 * 25;
+    const financialFreedomTarget = toNumber(data.retirementMonthlyCashflow) * 12 * 25;
     const financialFreedomProgress = financialFreedomTarget > 0 ? (investableNetWorth / financialFreedomTarget) * 100 : 0;
     const financialFreedomGap = financialFreedomTarget - investableNetWorth;
-    const monthsToRetirement = Math.max((toNumber(inputs.retirementAge) - toNumber(inputs.age)) * 12, 0);
-    const monthlyRate = Math.pow(1 + toNumber(inputs.annualReturnRate) / 100, 1 / 12) - 1;
+    const monthsToRetirement = Math.max((toNumber(data.retirementAge) - toNumber(data.age)) * 12, 0);
+    const monthlyRate = Math.pow(1 + toNumber(data.annualReturnRate) / 100, 1 / 12) - 1;
     const projectedInvestmentAtRetirement = monthsToRetirement === 0
       ? currentInvestmentAsset
       : currentInvestmentAsset * Math.pow(1 + monthlyRate, monthsToRetirement) + suggestedInvestment * ((Math.pow(1 + monthlyRate, monthsToRetirement) - 1) / (monthlyRate || 1));
@@ -316,13 +339,13 @@ function HomePage() {
     );
     return {
       monthlyTotalIncome, annualIncome, fixedExpense, available, currentCash, currentInvestmentAsset,
-      investableNetWorth, totalNetWorth, cashRunwayMonths, recommendedRunwayMonths, recommendedCashTarget, cashGap,
+      investableNetWorth, totalNetWorth, estimatedMortgageBalance, estimatedPersonalLoanBalance, cashRunwayMonths, recommendedRunwayMonths, recommendedCashTarget, cashGap,
       savingRate, fixedExpenseRatio, investmentRate, ageBenchmark, stableBenchmarkAsset, conservativeBenchmarkAsset,
       aggressiveBenchmarkAsset, incomeMultiple, gapToStableBenchmark, wealthTier, gapToNextTier, travelProgress,
       monthlyTravelSaving, suggestedCashTopUp, suggestedTravelTopUp, suggestedInvestment, financialFreedomTarget,
       financialFreedomProgress, financialFreedomGap, projectedInvestmentAtRetirement, monthsToNextTier, score,
     };
-  }, [inputs]);
+  }, [calculatedInputs]);
 
   const cashTone = result.cashRunwayMonths >= result.recommendedRunwayMonths ? "good" : result.cashRunwayMonths >= 3 ? "warning" : "danger";
   const expenseTone = result.fixedExpenseRatio <= 50 ? "good" : result.fixedExpenseRatio <= 65 ? "warning" : "danger";
@@ -331,12 +354,60 @@ function HomePage() {
   return (
     <PageShell>
       <section className="hero">
-        <p className="eyebrow">Personal FinOps 財務診斷工具</p>
-        <h1>現金流、同齡比較、財務階層與財務自由進度，一次看懂。</h1>
-        <p>輸入收入、家庭責任、支出、資產與負債，快速產出你的財務健康分數、現金安全水位、A0–A7 財務階層、同齡收入倍數落差與下一步改善建議。</p>
-        <div className="hero-actions">
-          <a href="#calculator" className="primary-button">開始財務診斷</a>
-          <a href="/same-age-savings" className="secondary-button">了解同齡比較</a>
+        <div className="hero-copy">
+          <p className="eyebrow">Personal FinOps 財務診斷工具</p>
+          <h1>看懂你的現金流、財務階層與同齡資產落差。</h1>
+          <p>
+            輸入收入、家庭責任、支出、資產與負債，快速產出財務健康分數、
+            現金安全水位、A0–A7 財務階層、同齡收入倍數比較與下一步改善建議。
+          </p>
+
+          <div className="hero-actions">
+            <a href="#calculator" className="primary-button">開始財務診斷</a>
+            <a href="/same-age-savings" className="secondary-button">查看同齡比較</a>
+          </div>
+
+          <div className="hero-pills">
+            <span>財務健康分數</span>
+            <span>A0–A7 財務階層</span>
+            <span>同齡收入倍數</span>
+          </div>
+        </div>
+
+        <div className="hero-panel" aria-label="財務診斷摘要">
+          <div className="hero-panel-header">
+            <span>診斷報告預覽</span>
+            <strong>Personal FinOps</strong>
+          </div>
+
+          <div className="hero-score">
+            <span>財務健康分數</span>
+            <strong>72</strong>
+            <em>/ 100</em>
+          </div>
+
+          <div className="hero-mini-grid">
+            <div>
+              <span>財務階層</span>
+              <strong>A4</strong>
+              <small>穩健中產</small>
+            </div>
+            <div>
+              <span>現金水位</span>
+              <strong>6.8</strong>
+              <small>個月</small>
+            </div>
+            <div>
+              <span>同齡比較</span>
+              <strong>+18%</strong>
+              <small>高於穩健基準</small>
+            </div>
+            <div>
+              <span>自由進度</span>
+              <strong>24%</strong>
+              <small>目標完成率</small>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -349,51 +420,159 @@ function HomePage() {
       <section className="section" id="calculator">
         <div className="section-heading">
           <p className="eyebrow">Step 1</p>
-          <h2>輸入基本資料與現金流</h2>
-          <p>欄位已分成基本與進階。想快速試算可先填基本欄位；若要更準確的家庭責任與淨資產分析，再展開進階欄位。</p>
+          <h2>輸入資料，產出你的財務診斷報告</h2>
+          <p>
+            預設值已改為 30 歲單身上班族的常見試算情境。瀏覽器會自動保留你前一次輸入的資料；
+            修改欄位後請按「計算我的財務診斷」更新下方報告。
+          </p>
         </div>
-        <div className="form-grid">
-          <NumberInput label="年齡" value={inputs.age} onChange={(v) => update("age", v)} suffix="歲" />
-          <SelectInput label="家庭型態" value={inputs.householdType} onChange={(v) => update("householdType", v)} options={householdOptions} />
-          <NumberInput label="家庭總人數" value={inputs.householdMembers} onChange={(v) => update("householdMembers", v)} suffix="人" />
-          <NumberInput label="需由你負擔的人數" value={inputs.dependents} onChange={(v) => update("dependents", v)} suffix="人" hint="重點是有幾人依賴你的收入。" />
-          <NumberInput label="每月固定收入" value={inputs.monthlyIncome} onChange={(v) => update("monthlyIncome", v)} />
-          <NumberInput label="年度獎金 / 業績獎金" value={inputs.annualBonus} onChange={(v) => update("annualBonus", v)} />
-          <SelectInput label="收入穩定性" value={inputs.incomeStability} onChange={(v) => update("incomeStability", v)} options={incomeStabilityOptions} />
-          <NumberInput label="其他年度收入" value={inputs.otherAnnualIncome} onChange={(v) => update("otherAnnualIncome", v)} />
-          <NumberInput label="房貸每月還款" value={inputs.mortgage} onChange={(v) => update("mortgage", v)} />
-          <NumberInput label="房貸剩餘期數" value={inputs.mortgageRemainingMonths} onChange={(v) => update("mortgageRemainingMonths", v)} suffix="期" />
-          <NumberInput label="信貸每月還款" value={inputs.personalLoan} onChange={(v) => update("personalLoan", v)} />
-          <NumberInput label="信貸剩餘期數" value={inputs.personalLoanRemainingMonths} onChange={(v) => update("personalLoanRemainingMonths", v)} suffix="期" />
-          <NumberInput label="保險費" value={inputs.insurance} onChange={(v) => update("insurance", v)} />
-          <NumberInput label="生活費" value={inputs.livingExpense} onChange={(v) => update("livingExpense", v)} />
-          <NumberInput label="水電瓦斯網路" value={inputs.utilities} onChange={(v) => update("utilities", v)} />
-          <NumberInput label="交通費" value={inputs.transportation} onChange={(v) => update("transportation", v)} />
-          <NumberInput label="孝親費 / 家庭支援" value={inputs.familySupport} onChange={(v) => update("familySupport", v)} />
-          <NumberInput label="其他固定支出" value={inputs.otherFixedExpense} onChange={(v) => update("otherFixedExpense", v)} />
-          <NumberInput label="現金存款" value={inputs.currentCash} onChange={(v) => update("currentCash", v)} />
-          <NumberInput label="現金目標" value={inputs.cashGoal} onChange={(v) => update("cashGoal", v)} />
-          <NumberInput label="目前投資資產" value={inputs.currentInvestmentAsset} onChange={(v) => update("currentInvestmentAsset", v)} />
-          <NumberInput label="年度旅遊預算" value={inputs.annualTravelBudget} onChange={(v) => update("annualTravelBudget", v)} />
-          <NumberInput label="目前旅遊基金" value={inputs.currentTravelFund} onChange={(v) => update("currentTravelFund", v)} />
-          <NumberInput label="每月最低投資" value={inputs.minInvestment} onChange={(v) => update("minInvestment", v)} />
+
+        <div className="input-groups">
+          <section className="input-group">
+            <div className="input-group-heading">
+              <span>01</span>
+              <div>
+                <h3>基本資料</h3>
+                <p>用來判斷同齡比較區間、家庭責任與現金安全水位。</p>
+              </div>
+            </div>
+            <div className="form-grid compact">
+              <NumberInput label="年齡" value={inputs.age} onChange={(v) => update("age", v)} suffix="歲" />
+              <SelectInput label="家庭型態" value={inputs.householdType} onChange={(v) => update("householdType", v)} options={householdOptions} />
+              <NumberInput label="家庭總人數" value={inputs.householdMembers} onChange={(v) => update("householdMembers", v)} suffix="人" />
+              <NumberInput label="需由你負擔的人數" value={inputs.dependents} onChange={(v) => update("dependents", v)} suffix="人" hint="重點是有幾人依賴你的收入。" />
+            </div>
+          </section>
+
+          <section className="input-group">
+            <div className="input-group-heading">
+              <span>02</span>
+              <div>
+                <h3>收入</h3>
+                <p>用來計算年收入、儲蓄率、收入倍數與同齡基準落差。</p>
+              </div>
+            </div>
+            <div className="form-grid compact">
+              <NumberInput label="每月固定收入" value={inputs.monthlyIncome} onChange={(v) => update("monthlyIncome", v)} />
+              <NumberInput label="年度獎金 / 業績獎金" value={inputs.annualBonus} onChange={(v) => update("annualBonus", v)} />
+              <NumberInput label="其他年度收入" value={inputs.otherAnnualIncome} onChange={(v) => update("otherAnnualIncome", v)} />
+              <SelectInput label="收入穩定性" value={inputs.incomeStability} onChange={(v) => update("incomeStability", v)} options={incomeStabilityOptions} />
+            </div>
+          </section>
+
+          <section className="input-group">
+            <div className="input-group-heading">
+              <span>03</span>
+              <div>
+                <h3>支出與貸款現金流</h3>
+                <p>用來計算固定支出比、每月可分配金額與現金安全月數。</p>
+              </div>
+            </div>
+            <div className="form-grid compact">
+              <NumberInput label="房貸每月還款" value={inputs.mortgage} onChange={(v) => update("mortgage", v)} />
+              <NumberInput label="房貸剩餘期數" value={inputs.mortgageRemainingMonths} onChange={(v) => update("mortgageRemainingMonths", v)} suffix="期" />
+              <NumberInput label="信貸每月還款" value={inputs.personalLoan} onChange={(v) => update("personalLoan", v)} />
+              <NumberInput label="信貸剩餘期數" value={inputs.personalLoanRemainingMonths} onChange={(v) => update("personalLoanRemainingMonths", v)} suffix="期" />
+              <NumberInput label="保險費" value={inputs.insurance} onChange={(v) => update("insurance", v)} />
+              <NumberInput label="生活費" value={inputs.livingExpense} onChange={(v) => update("livingExpense", v)} />
+              <NumberInput label="水電瓦斯網路" value={inputs.utilities} onChange={(v) => update("utilities", v)} />
+              <NumberInput label="交通費" value={inputs.transportation} onChange={(v) => update("transportation", v)} />
+              <NumberInput label="孝親費 / 家庭支援" value={inputs.familySupport} onChange={(v) => update("familySupport", v)} />
+              <NumberInput label="其他固定支出" value={inputs.otherFixedExpense} onChange={(v) => update("otherFixedExpense", v)} />
+            </div>
+          </section>
+
+          <section className="input-group">
+            <div className="input-group-heading">
+              <span>04</span>
+              <div>
+                <h3>現金水位</h3>
+                <p>用來判斷緊急預備金是否足夠，以及本月是否應優先補現金。</p>
+              </div>
+            </div>
+            <div className="form-grid compact">
+              <NumberInput label="現金存款" value={inputs.currentCash} onChange={(v) => update("currentCash", v)} />
+              <NumberInput label="現金目標" value={inputs.cashGoal} onChange={(v) => update("cashGoal", v)} hint="可填自己的目標；診斷也會依支出自動估算建議安全水位。" />
+            </div>
+          </section>
+
+          <section className="input-group">
+            <div className="input-group-heading">
+              <span>05</span>
+              <div>
+                <h3>投資</h3>
+                <p>用來計算可投資淨資產、投資率、財務階層與下一階層差距。</p>
+              </div>
+            </div>
+            <div className="form-grid compact">
+              <NumberInput label="目前投資資產" value={inputs.currentInvestmentAsset} onChange={(v) => update("currentInvestmentAsset", v)} />
+              <NumberInput label="每月最低投資" value={inputs.minInvestment} onChange={(v) => update("minInvestment", v)} />
+              <NumberInput label="每月最高投資" value={inputs.maxInvestment} onChange={(v) => update("maxInvestment", v)} />
+              <NumberInput label="預期年化報酬率" value={inputs.annualReturnRate} onChange={(v) => update("annualReturnRate", v)} suffix="%" />
+            </div>
+          </section>
+
+          <section className="input-group">
+            <div className="input-group-heading">
+              <span>06</span>
+              <div>
+                <h3>旅遊規劃</h3>
+                <p>用來計算年度旅遊基金完成率與每月沉澱金額。</p>
+              </div>
+            </div>
+            <div className="form-grid compact">
+              <NumberInput label="年度旅遊預算" value={inputs.annualTravelBudget} onChange={(v) => update("annualTravelBudget", v)} />
+              <NumberInput label="目前旅遊基金" value={inputs.currentTravelFund} onChange={(v) => update("currentTravelFund", v)} />
+            </div>
+          </section>
+
+          <section className="input-group">
+            <div className="input-group-heading">
+              <span>07</span>
+              <div>
+                <h3>退休目標</h3>
+                <p>用 25 倍年支出估算財務自由目標，並推估退休時投資資產。</p>
+              </div>
+            </div>
+            <div className="form-grid compact">
+              <NumberInput label="退休後目標月支出" value={inputs.retirementMonthlyCashflow} onChange={(v) => update("retirementMonthlyCashflow", v)} />
+              <NumberInput label="目標退休年齡" value={inputs.retirementAge} onChange={(v) => update("retirementAge", v)} suffix="歲" />
+            </div>
+          </section>
         </div>
-        <button className="toggle-button" onClick={() => setShowAdvanced(!showAdvanced)}>{showAdvanced ? "收合進階欄位" : "展開進階資產與退休欄位"}</button>
+
+        <button className="toggle-button" onClick={() => setShowAdvanced(!showAdvanced)}>
+          {showAdvanced ? "收合精準淨資產欄位" : "展開精準淨資產欄位（可選填）"}
+        </button>
         {showAdvanced && (
-          <div className="form-grid advanced-grid">
-            <NumberInput label="每月最高投資" value={inputs.maxInvestment} onChange={(v) => update("maxInvestment", v)} />
-            <NumberInput label="自住房市值（可選填）" value={inputs.homeValue} onChange={(v) => update("homeValue", v)} />
-            <NumberInput label="房貸剩餘本金" value={inputs.mortgageBalance} onChange={(v) => update("mortgageBalance", v)} />
-            <NumberInput label="信貸剩餘本金" value={inputs.personalLoanBalance} onChange={(v) => update("personalLoanBalance", v)} />
-            <NumberInput label="其他負債" value={inputs.otherDebt} onChange={(v) => update("otherDebt", v)} />
-            <NumberInput label="退休後目標月支出" value={inputs.retirementMonthlyCashflow} onChange={(v) => update("retirementMonthlyCashflow", v)} />
-            <NumberInput label="目標退休年齡" value={inputs.retirementAge} onChange={(v) => update("retirementAge", v)} suffix="歲" />
-            <NumberInput label="預期年化報酬率" value={inputs.annualReturnRate} onChange={(v) => update("annualReturnRate", v)} suffix="%" />
+          <div className="input-group advanced-box">
+            <div className="input-group-heading">
+              <span>進階</span>
+              <div>
+                <h3>精準淨資產資料</h3>
+                <p>
+                  基本版已可用「月繳 × 剩餘期數」估算貸款剩餘現金流，因此不用一定要填剩餘本金。
+                  若你想讓總淨資產更精準，可在這裡填入實際房貸與信貸剩餘本金。
+                </p>
+              </div>
+            </div>
+            <div className="form-grid compact advanced-grid">
+              <NumberInput label="自住房市值（可選填）" value={inputs.homeValue} onChange={(v) => update("homeValue", v)} />
+              <NumberInput label="房貸剩餘本金（可選填）" value={inputs.mortgageBalance} onChange={(v) => update("mortgageBalance", v)} hint="不填則用房貸月繳 × 剩餘期數做簡化估算。" />
+              <NumberInput label="信貸剩餘本金（可選填）" value={inputs.personalLoanBalance} onChange={(v) => update("personalLoanBalance", v)} hint="不填則用信貸月繳 × 剩餘期數做簡化估算。" />
+              <NumberInput label="其他負債" value={inputs.otherDebt} onChange={(v) => update("otherDebt", v)} />
+            </div>
           </div>
         )}
+
+        <div className="calculator-actions">
+          <button className="calculate-button" onClick={handleCalculate}>計算我的財務診斷</button>
+          <button className="reset-button" onClick={resetToDefault}>恢復 30 歲預設範例</button>
+          <p>{hasCalculated ? "已依目前輸入資料更新下方診斷報告。" : "下方先顯示預設範例；修改欄位後請按計算更新報告。"}</p>
+        </div>
       </section>
 
-      <section className="dashboard section">
+      <section className="dashboard section" id="diagnosis-report">
         <div className="section-heading">
           <p className="eyebrow">Step 2</p>
           <h2>你的個人 FinOps 診斷報告</h2>
@@ -413,7 +592,8 @@ function HomePage() {
         </div>
         <div className="metrics-grid">
           <MetricCard title="可投資淨資產" value={formatNTD(result.investableNetWorth)} note="現金＋投資資產－信貸與其他負債，不含自住房。" />
-          <MetricCard title="總淨資產" value={formatNTD(result.totalNetWorth)} note="含自住房市值與房貸剩餘本金，供整體參考。" />
+          <MetricCard title="貸款剩餘估算" value={formatNTD(result.estimatedMortgageBalance + result.estimatedPersonalLoanBalance)} note="基本版以月繳 × 剩餘期數估算；進階欄位可填實際本金。" />
+          <MetricCard title="總淨資產" value={formatNTD(result.totalNetWorth)} note="含自住房與貸款。若未填實際本金，系統以月繳 × 剩餘期數估算。" />
           <MetricCard title="距離下一階層" value={result.wealthTier.nextTier ? formatNTD(result.gapToNextTier) : "已達 A7"} note={result.monthsToNextTier ? `依建議投資金額估算約 ${Math.max(result.monthsToNextTier, 0)} 個月。` : "重點轉向資產保護與現金流管理。"} />
           <MetricCard title="同齡收入倍數" value={`${result.incomeMultiple.toFixed(1)} 倍`} note={`${result.ageBenchmark.label} 穩健基準約 ${result.ageBenchmark.stable} 倍年收入。`} tone={benchmarkTone} />
           <MetricCard title="同齡穩健基準落差" value={formatNTD(result.gapToStableBenchmark)} note={result.gapToStableBenchmark >= 0 ? "目前高於穩健基準。" : "目前低於穩健基準，建議提高儲蓄與投資紀律。"} tone={benchmarkTone} />
