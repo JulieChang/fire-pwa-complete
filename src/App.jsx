@@ -40,6 +40,10 @@ function formatNTD(value) {
   return `NT$ ${Math.round(number).toLocaleString("zh-TW")}`;
 }
 
+function formatPercent(value) {
+  return `${Math.round(Number(value) || 0)}%`;
+}
+
 function clamp(value, min = 0, max = 100) {
   return Math.min(Math.max(Number(value) || 0, min), max);
 }
@@ -52,7 +56,7 @@ function SiteHeader() {
   return (
     <header className="site-header">
       <a className="brand" href="/" aria-label="回到 Personal FinOps Planner 首頁">
-        <span className="brand-mark">F</span>
+        <img className="brand-logo" src="/logo.png" alt="Personal FinOps Planner logo" />
         <span>Personal FinOps Planner</span>
       </a>
       <nav className="site-nav" aria-label="主要導覽">
@@ -144,7 +148,7 @@ function AllocationCard({ title, amount, note }) {
 
 function SharePanel({ result }) {
   const pageUrl = window.location.href;
-  const shareText = `我的 Personal FinOps 計算結果：\n每月可分配金額：${formatNTD(result.available)}\n現金安全月數：${result.cashRunwayMonths.toFixed(1)} 個月\n6 個月現金目標：${formatNTD(result.sixMonthCashTarget)}\n建議每月補現金：${formatNTD(result.suggestedMonthlyCashTopUp)}\n財務自由目標資產：${formatNTD(result.financialFreedomTarget)}\n退休時預估投資資產：${formatNTD(result.projectedInvestmentAtRetirement)}\n目前還差：${formatNTD(result.financialFreedomGap)}\n\n免費試算：${pageUrl}`;
+  const shareText = `我的 Personal FinOps 計算結果：\n每月可分配金額：${formatNTD(result.available)}\n現金安全月數：${result.cashRunwayMonths.toFixed(1)} 個月\n財務自由目前進度：${formatPercent(result.currentFinancialFreedomProgress)}\n退休時財務自由達成率：${formatPercent(result.retirementFinancialFreedomAchievement)}\n退休時預估投資資產：${formatNTD(result.projectedInvestmentAtRetirement)}\n退休時預估缺口：${formatNTD(result.retirementFinancialFreedomGap)}\n本月建議投資：${formatNTD(result.suggestedInvestment)}\n\n免費試算：${pageUrl}`;
   const encodedText = encodeURIComponent(shareText);
   const encodedUrl = encodeURIComponent(pageUrl);
 
@@ -186,6 +190,101 @@ function SharePanel({ result }) {
   );
 }
 
+function calculateResults(inputs) {
+  const monthlyBonus = inputs.annualBonus / 12;
+  const monthlyIncomeWithBonus = inputs.monthlyIncome + monthlyBonus;
+  const monthlyDebtAndExpense = inputs.mortgage + inputs.personalLoan + inputs.insurance + inputs.livingExpense + inputs.otherExpense;
+  const essentialExpense = inputs.mortgage + inputs.personalLoan + inputs.insurance + inputs.livingExpense;
+  const available = monthlyIncomeWithBonus - monthlyDebtAndExpense;
+  const availablePositive = Math.max(available, 0);
+  const cashRunwayMonths = essentialExpense > 0 ? inputs.currentCash / essentialExpense : 0;
+  const sixMonthCashTarget = essentialExpense * 6;
+  const cashGapToSixMonths = Math.max(sixMonthCashTarget - inputs.currentCash, 0);
+  const cashGapToCustomGoal = Math.max(inputs.cashGoal - inputs.currentCash, 0);
+  const cashTargetGap = Math.max(cashGapToCustomGoal, cashGapToSixMonths);
+  const monthlyTravelTarget = inputs.annualTravelBudget / 12;
+  const travelGap = Math.max(inputs.annualTravelBudget - inputs.currentTravelFund, 0);
+  const travelProgress = inputs.annualTravelBudget > 0 ? (inputs.currentTravelFund / inputs.annualTravelBudget) * 100 : 100;
+  const financialFreedomTarget = inputs.retirementMonthlyCashflow * 12 * 25;
+  const currentFinancialFreedomGap = Math.max(financialFreedomTarget - inputs.currentInvestmentAsset, 0);
+  const currentFinancialFreedomProgress = financialFreedomTarget > 0 ? (inputs.currentInvestmentAsset / financialFreedomTarget) * 100 : 0;
+  const yearsToRetire = Math.max(inputs.retirementAge - inputs.currentAge, 0);
+  const monthsToRetire = yearsToRetire * 12;
+  const monthlyRate = inputs.annualReturnRate / 100 / 12;
+
+  let suggestedCashTopUp = 0;
+  let suggestedTravelTopUp = 0;
+  let suggestedInvestment = 0;
+  let allocationReason = "";
+
+  if (availablePositive <= 0) {
+    allocationReason = "本月可分配金額為零或負數，建議先檢查固定支出、信用卡帳單與短期現金流壓力。";
+  } else if (cashRunwayMonths < 3) {
+    suggestedInvestment = Math.min(inputs.minInvestment, availablePositive);
+    suggestedCashTopUp = Math.min(cashTargetGap, Math.max(availablePositive - suggestedInvestment, 0));
+    suggestedTravelTopUp = 0;
+    allocationReason = "現金安全水位低於 3 個月，系統優先補現金；旅遊基金暫緩，投資以最低定期定額為主。";
+  } else {
+    const temporaryProjected = projectFutureValue(inputs.currentInvestmentAsset, inputs.minInvestment, monthlyRate, monthsToRetire);
+    const temporaryRetirementAchievement = financialFreedomTarget > 0 ? (temporaryProjected / financialFreedomTarget) * 100 : 0;
+    const targetInvestmentRatio = temporaryRetirementAchievement < 70 ? 0.6 : temporaryRetirementAchievement < 100 ? 0.5 : 0.35;
+    suggestedCashTopUp = cashRunwayMonths < 6 ? Math.min(cashTargetGap, availablePositive * 0.25) : Math.min(cashTargetGap, availablePositive * 0.1);
+    suggestedTravelTopUp = travelProgress < 100 ? Math.min(travelGap, monthlyTravelTarget, Math.max(availablePositive - suggestedCashTopUp, 0) * 0.25) : 0;
+    suggestedInvestment = Math.min(inputs.maxInvestment, Math.max(inputs.minInvestment, availablePositive * targetInvestmentRatio));
+    const total = suggestedCashTopUp + suggestedTravelTopUp + suggestedInvestment;
+    if (total > availablePositive) {
+      const scale = availablePositive / total;
+      suggestedCashTopUp *= scale;
+      suggestedTravelTopUp *= scale;
+      suggestedInvestment *= scale;
+    }
+    allocationReason = temporaryRetirementAchievement < 100
+      ? "現金水位已達基本安全線，但退休時財務自由達成率仍不足，系統提高投資比重，同時保留旅遊基金與現金補位。"
+      : "退休推估已接近或高於目標，系統採平衡分配，兼顧投資、現金與年度旅遊基金。";
+  }
+
+  const projectedInvestmentAtRetirement = projectFutureValue(inputs.currentInvestmentAsset, suggestedInvestment, monthlyRate, monthsToRetire);
+  const retirementFinancialFreedomGap = Math.max(financialFreedomTarget - projectedInvestmentAtRetirement, 0);
+  const retirementFinancialFreedomAchievement = financialFreedomTarget > 0 ? (projectedInvestmentAtRetirement / financialFreedomTarget) * 100 : 0;
+  const debtPressure = inputs.monthlyIncome > 0 ? ((inputs.mortgage + inputs.personalLoan) / inputs.monthlyIncome) * 100 : 0;
+  const remainingMortgageTotal = inputs.mortgage * inputs.mortgageRemainingMonths;
+  const remainingPersonalLoanTotal = inputs.personalLoan * inputs.personalLoanRemainingMonths;
+
+  return {
+    monthlyBonus,
+    monthlyIncomeWithBonus,
+    monthlyDebtAndExpense,
+    essentialExpense,
+    available,
+    cashRunwayMonths,
+    sixMonthCashTarget,
+    cashGapToSixMonths,
+    cashGapToCustomGoal,
+    suggestedMonthlyCashTopUp: suggestedCashTopUp,
+    monthlyTravelTarget,
+    suggestedTravelTopUp,
+    suggestedInvestment,
+    financialFreedomTarget,
+    currentFinancialFreedomGap,
+    currentFinancialFreedomProgress,
+    projectedInvestmentAtRetirement,
+    retirementFinancialFreedomGap,
+    retirementFinancialFreedomAchievement,
+    travelProgress,
+    debtPressure,
+    remainingMortgageTotal,
+    remainingPersonalLoanTotal,
+    yearsToRetire,
+    allocationReason,
+  };
+}
+
+function projectFutureValue(currentAsset, monthlyContribution, monthlyRate, months) {
+  if (months <= 0) return currentAsset;
+  if (!monthlyRate) return currentAsset + monthlyContribution * months;
+  return currentAsset * Math.pow(1 + monthlyRate, months) + monthlyContribution * ((Math.pow(1 + monthlyRate, months) - 1) / monthlyRate);
+}
+
 function HomePage() {
   const [inputs, setInputs] = useState(getInitialInputs);
   const updateInput = (key, value) => {
@@ -198,54 +297,7 @@ function HomePage() {
     }
   };
 
-  const result = useMemo(() => {
-    const monthlyBonus = inputs.annualBonus / 12;
-    const monthlyDebtAndExpense = inputs.mortgage + inputs.personalLoan + inputs.insurance + inputs.livingExpense + inputs.otherExpense;
-    const essentialExpense = inputs.mortgage + inputs.personalLoan + inputs.insurance + inputs.livingExpense;
-    const available = inputs.monthlyIncome + monthlyBonus - monthlyDebtAndExpense;
-    const cashRunwayMonths = essentialExpense > 0 ? inputs.currentCash / essentialExpense : 0;
-    const sixMonthCashTarget = essentialExpense * 6;
-    const cashGapToSixMonths = Math.max(sixMonthCashTarget - inputs.currentCash, 0);
-    const cashGapToCustomGoal = Math.max(inputs.cashGoal - inputs.currentCash, 0);
-    const suggestedMonthlyCashTopUp = Math.min(Math.max(available * (cashRunwayMonths < 3 ? 0.65 : cashRunwayMonths < 6 ? 0.35 : 0.1), 0), cashGapToCustomGoal || cashGapToSixMonths || Math.max(available * 0.1, 0));
-    const monthlyTravelTarget = inputs.annualTravelBudget / 12;
-    const travelGap = Math.max(inputs.annualTravelBudget - inputs.currentTravelFund, 0);
-    const suggestedTravelTopUp = Math.min(Math.max(monthlyTravelTarget, 0), travelGap || monthlyTravelTarget);
-    const investCapacity = Math.max(available - suggestedMonthlyCashTopUp - suggestedTravelTopUp, 0);
-    const suggestedInvestment = clamp(Math.max(Math.min(investCapacity, inputs.maxInvestment), available > 0 ? inputs.minInvestment : 0), 0, inputs.maxInvestment);
-    const financialFreedomTarget = inputs.retirementMonthlyCashflow * 12 * 25;
-    const yearsToRetire = Math.max(inputs.retirementAge - inputs.currentAge, 0);
-    const monthlyRate = inputs.annualReturnRate / 100 / 12;
-    const months = yearsToRetire * 12;
-    const projectedInvestmentAtRetirement = months === 0
-      ? inputs.currentInvestmentAsset
-      : inputs.currentInvestmentAsset * Math.pow(1 + monthlyRate, months) + suggestedInvestment * ((Math.pow(1 + monthlyRate, months) - 1) / (monthlyRate || 1));
-    const financialFreedomGap = Math.max(financialFreedomTarget - projectedInvestmentAtRetirement, 0);
-    const financialFreedomProgress = financialFreedomTarget > 0 ? (projectedInvestmentAtRetirement / financialFreedomTarget) * 100 : 0;
-    const travelProgress = inputs.annualTravelBudget > 0 ? (inputs.currentTravelFund / inputs.annualTravelBudget) * 100 : 0;
-    const debtPressure = inputs.monthlyIncome > 0 ? ((inputs.mortgage + inputs.personalLoan) / inputs.monthlyIncome) * 100 : 0;
-
-    return {
-      monthlyBonus,
-      monthlyDebtAndExpense,
-      essentialExpense,
-      available,
-      cashRunwayMonths,
-      sixMonthCashTarget,
-      cashGapToSixMonths,
-      cashGapToCustomGoal,
-      suggestedMonthlyCashTopUp,
-      monthlyTravelTarget,
-      suggestedTravelTopUp,
-      suggestedInvestment,
-      financialFreedomTarget,
-      projectedInvestmentAtRetirement,
-      financialFreedomGap,
-      financialFreedomProgress,
-      travelProgress,
-      debtPressure,
-    };
-  }, [inputs]);
+  const result = useMemo(() => calculateResults(inputs), [inputs]);
 
   return (
     <PageShell>
@@ -254,7 +306,7 @@ function HomePage() {
           <p className="eyebrow">Personal FinOps｜個人財務管理系統</p>
           <h1>用企業 FinOps 思維，管理你的現金流、投資與財務自由目標</h1>
           <p className="subtitle">
-            Personal FinOps Planner 是為台灣上班族設計的免費財務試算工具。它不是單純記帳，而是把收入、房貸、信貸、保險、生活費、現金安全水位、旅遊基金、ETF 定期定額與退休目標放在同一個儀表板中檢視。你可以用它快速看懂本月可分配金額、現金安全月數、旅遊基金達成率、建議投資金額，以及距離財務自由還有多遠。
+            Personal FinOps Planner 是為台灣上班族設計的免費財務試算工具。它不是單純記帳，而是把收入、房貸、信貸、保險、生活費、現金安全水位、旅遊基金、ETF 定期定額與退休目標放在同一個儀表板中檢視。
           </p>
           <div className="hero-actions">
             <a className="primary-button" href="#calculator">開始免費試算</a>
@@ -270,35 +322,32 @@ function HomePage() {
 
       <section className="section content-section">
         <h2>為什麼這個工具不是一般記帳 App？</h2>
-        <p>
-          傳統記帳多半是在月底回頭看錢花到哪裡，但真正困難的是：下個月薪水進來後，應該先補現金、先還債、繼續投資，還是把錢放進旅遊基金？Personal FinOps Planner 採用類似企業 FinOps 的 Budget Engine 思維，先確認每月必要支出與安全水位，再根據現金月數、負債壓力、年度旅遊預算與退休目標，產生可執行的資金分配建議。
-        </p>
-        <p>
-          對台灣上班族來說，財務壓力通常不是單一來源，而是房貸、信貸、保險、信用卡帳單、年度旅遊、ETF 定期定額與退休焦慮同時存在。這個工具的目的，是把這些項目放在同一套邏輯裡看，而不是只用「每月要存收入幾成」這種單一答案處理所有情境。
-        </p>
+        <p>傳統記帳多半是在月底回頭看錢花到哪裡，但真正困難的是：下個月薪水進來後，應該先補現金、先還債、繼續投資，還是把錢放進旅遊基金？Personal FinOps Planner 用現金安全水位、退休時財務自由達成率、年度旅遊基金進度與投資上下限，產生一套可執行的本月資金分配建議。</p>
+        <p>本站的重點不是要求使用者盲目降低生活品質，而是把錢放到該去的位置。當現金安全月數不足時，系統會優先補現金；當現金水位足夠但退休時達成率不足時，系統會提高投資比重；當退休進度與現金水位都合理時，才會把更多資金分配給旅遊基金與生活彈性。</p>
       </section>
 
       <section className="dashboard" aria-label="財務健康摘要">
         <MetricCard title="現金安全月數" value={`${result.cashRunwayMonths.toFixed(1)} 個月`} note={`6 個月目標：${formatNTD(result.sixMonthCashTarget)}`} />
-        <MetricCard title="旅遊基金達成率" value={`${Math.round(clamp(result.travelProgress))}%`} note={`年度預算：${formatNTD(inputs.annualTravelBudget)}`} />
-        <MetricCard title="房貸＋信貸壓力" value={`${Math.round(result.debtPressure)}%`} note="以每月收入為分母估算" />
-        <MetricCard title="財務自由達成率" value={`${Math.round(clamp(result.financialFreedomProgress))}%`} note={`目標資產：${formatNTD(result.financialFreedomTarget)}`} />
+        <MetricCard title="財務自由目前進度" value={formatPercent(result.currentFinancialFreedomProgress)} note={`目前缺口：${formatNTD(result.currentFinancialFreedomGap)}`} />
+        <MetricCard title="退休時財務自由達成率" value={formatPercent(result.retirementFinancialFreedomAchievement)} note={`退休時預估缺口：${formatNTD(result.retirementFinancialFreedomGap)}`} />
+        <MetricCard title="債務月收入比" value={formatPercent(result.debtPressure)} note={`房貸剩餘：${formatNTD(result.remainingMortgageTotal)}；信貸剩餘：${formatNTD(result.remainingPersonalLoanTotal)}`} />
       </section>
 
       <section id="calculator" className="calculator-grid">
         <div className="section form-section">
-          <h2>輸入你的每月財務資料</h2>
+          <h2>輸入你的每月現金流與目標</h2>
+          <p>所有輸入資料只會保存在你的瀏覽器 localStorage，用於下次開啟時保留試算內容。本工具不要求輸入身分證、銀行帳號或信用卡資訊。</p>
           <div className="form-grid">
             <InputCard label="每月收入" value={inputs.monthlyIncome} onChange={(value) => updateInput("monthlyIncome", value)} />
             <InputCard label="年度獎金" value={inputs.annualBonus} onChange={(value) => updateInput("annualBonus", value)} />
-            <InputCard label="房貸月繳" value={inputs.mortgage} onChange={(value) => updateInput("mortgage", value)} />
-            <InputCard label="房貸剩餘期數" value={inputs.mortgageRemainingMonths} onChange={(value) => updateInput("mortgageRemainingMonths", value)} suffix="月" />
-            <InputCard label="信貸月繳" value={inputs.personalLoan} onChange={(value) => updateInput("personalLoan", value)} />
-            <InputCard label="信貸剩餘期數" value={inputs.personalLoanRemainingMonths} onChange={(value) => updateInput("personalLoanRemainingMonths", value)} suffix="月" />
+            <InputCard label="房貸月付" value={inputs.mortgage} onChange={(value) => updateInput("mortgage", value)} />
+            <InputCard label="房貸剩餘期數" value={inputs.mortgageRemainingMonths} onChange={(value) => updateInput("mortgageRemainingMonths", value)} suffix="期" />
+            <InputCard label="信貸月付" value={inputs.personalLoan} onChange={(value) => updateInput("personalLoan", value)} />
+            <InputCard label="信貸剩餘期數" value={inputs.personalLoanRemainingMonths} onChange={(value) => updateInput("personalLoanRemainingMonths", value)} suffix="期" />
             <InputCard label="保險月繳" value={inputs.insurance} onChange={(value) => updateInput("insurance", value)} />
             <InputCard label="生活費" value={inputs.livingExpense} onChange={(value) => updateInput("livingExpense", value)} />
             <InputCard label="其他固定支出" value={inputs.otherExpense} onChange={(value) => updateInput("otherExpense", value)} />
-            <InputCard label="目前可動用現金" value={inputs.currentCash} onChange={(value) => updateInput("currentCash", value)} />
+            <InputCard label="目前現金" value={inputs.currentCash} onChange={(value) => updateInput("currentCash", value)} />
             <InputCard label="自訂現金目標" value={inputs.cashGoal} onChange={(value) => updateInput("cashGoal", value)} />
             <InputCard label="年度旅遊預算" value={inputs.annualTravelBudget} onChange={(value) => updateInput("annualTravelBudget", value)} />
             <InputCard label="目前旅遊基金" value={inputs.currentTravelFund} onChange={(value) => updateInput("currentTravelFund", value)} />
@@ -314,16 +363,29 @@ function HomePage() {
 
         <aside className="section result-section">
           <h2>本月資金分配建議</h2>
-          <AllocationCard title="建議補現金" amount={result.suggestedMonthlyCashTopUp} note={`距離自訂現金目標：${formatNTD(result.cashGapToCustomGoal)}`} />
-          <AllocationCard title="建議補旅遊基金" amount={result.suggestedTravelTopUp} note={`每月目標：${formatNTD(result.monthlyTravelTarget)}`} />
-          <AllocationCard title="建議股票 / ETF 投資" amount={result.suggestedInvestment} note="依現金水位與投資上下限估算" />
+          <AllocationCard title="建議補現金" amount={result.suggestedMonthlyCashTopUp} note={`距離 6 個月現金目標：${formatNTD(result.cashGapToSixMonths)}`} />
+          <AllocationCard title="建議補旅遊基金" amount={result.suggestedTravelTopUp} note={`年度旅遊基金進度：${formatPercent(result.travelProgress)}`} />
+          <AllocationCard title="建議股票 / ETF 投資" amount={result.suggestedInvestment} note="依現金水位、退休達成率與投資上下限估算" />
           <div className="progress-block">
-            <div className="row-between"><span>財務自由達成率</span><strong>{Math.round(clamp(result.financialFreedomProgress))}%</strong></div>
-            <ProgressBar value={result.financialFreedomProgress} />
-            <p>退休時預估投資資產：{formatNTD(result.projectedInvestmentAtRetirement)}</p>
-            <p>距離目標仍差：{formatNTD(result.financialFreedomGap)}</p>
+            <div className="row-between"><span>財務自由目前進度</span><strong>{formatPercent(clamp(result.currentFinancialFreedomProgress))}</strong></div>
+            <ProgressBar value={result.currentFinancialFreedomProgress} />
+            <p>目標資產：{formatNTD(result.financialFreedomTarget)}</p>
           </div>
+          <div className="progress-block">
+            <div className="row-between"><span>退休時財務自由達成率</span><strong>{formatPercent(clamp(result.retirementFinancialFreedomAchievement))}</strong></div>
+            <ProgressBar value={result.retirementFinancialFreedomAchievement} />
+            <p>退休時預估投資資產：{formatNTD(result.projectedInvestmentAtRetirement)}</p>
+            <p>退休時預估缺口：{formatNTD(result.retirementFinancialFreedomGap)}</p>
+          </div>
+          <p className="note-box">{result.allocationReason}</p>
         </aside>
+      </section>
+
+      <section className="section content-section">
+        <h2>計算邏輯與公式說明</h2>
+        <p>本工具的資金分配邏輯不是單純用收入乘以固定比例，而是依序檢查現金安全水位、退休時財務自由達成率、旅遊基金進度與投資上下限。每月可分配金額 = 每月收入 + 年度獎金 / 12 - 房貸 - 信貸 - 保險 - 生活費 - 其他固定支出。</p>
+        <p>財務自由目標資產 = 退休後每月現金流目標 × 12 × 25。財務自由目前進度使用目前投資資產除以目標資產；退休時財務自由達成率則會把目前投資資產、每月建議投資金額、預估年化報酬率與距離退休年數納入複利推估。</p>
+        <p>本工具僅供教育與試算參考，不構成投資建議、保險建議、貸款建議或稅務建議。實際結果會受到市場波動、通膨、收入變化、家庭責任與個人風險承受度影響。</p>
       </section>
 
       <section className="section content-section">
@@ -432,6 +494,8 @@ function MonthlySavingRatePage() {
         <p className="lead">每月存錢比例是個人財務管理中最重要的指標之一。比起單純記帳，更重要的是知道每個月收入進來後，應該分配多少給生活費、緊急預備金、投資、旅遊基金與長期財務自由目標。</p>
         <HomeButton />
         {article.paragraphs.map((paragraph, index) => <p key={index}>{paragraph}</p>)}
+        <h2>本工具使用的分配邏輯</h2>
+        <p>本工具會先計算每月可分配金額，再檢查現金安全月數。如果現金安全月數低於 3 個月，會優先補現金，旅遊基金暫緩，投資以最低定期定額為主。若現金水位已達標但退休時財務自由達成率不足，系統會提高投資比重。若退休推估已接近目標，則採取較平衡的現金、投資與旅遊基金配置。</p>
         <h2>每月存錢比例常見問題 FAQ</h2>
         <h3>每月存錢 20% 夠嗎？</h3>
         <p>對剛開始理財的人來說，每月存下收入的 20% 是很好的起點。若收入穩定且支出可控，可以逐步提高到 30% 或 40%。但如果現金水位不足，優先順序應該是補緊急預備金。</p>
@@ -481,7 +545,11 @@ function PrivacyPolicyPage() {
       <ul><li>提供財務試算與網站功能</li><li>改善網站內容與使用者體驗</li><li>分析網站流量與使用情況</li><li>顯示第三方廣告或衡量廣告成效</li></ul>
       <h2>六、第三方連結</h2>
       <p>本網站可能包含連往第三方網站的連結。當使用者點擊這些連結並離開本網站後，第三方網站的資料處理方式將依其各自的隱私權政策為準，本網站不對第三方網站的內容或資料處理方式負責。</p>
-      <h2>七、政策更新</h2>
+      <h2>七、使用者權利</h2>
+      <p>使用者可自行清除瀏覽器中的 Cookie、localStorage 或網站資料，以刪除本網站保存在裝置端的試算紀錄。本網站不會主動要求使用者提供身分證字號、銀行帳號、信用卡號或其他高度敏感個人資料。</p>
+      <h2>八、聯絡我們</h2>
+      <p>若你對本隱私權政策、資料使用方式或網站內容有任何疑問，可透過聯絡頁面與我們聯繫：<a href="/contact">https://finops-planner.vercel.app/contact</a></p>
+      <h2>九、政策更新</h2>
       <p>本網站可能因應服務調整、法規變更或第三方服務政策更新而修改本隱私權政策。最新版本將公布於本頁面。</p>
       <p>最後更新日期：2026 年 5 月 14 日</p>
       <HomeButton />

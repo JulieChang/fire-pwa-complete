@@ -283,3 +283,22 @@ p { margin: 0 0 16px; color: #334155; }
   .section-heading { align-items: flex-start; flex-direction: column; }
   .site-footer nav { justify-content: flex-start; }
 }
+
+.brand-logo {
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  display: inline-block;
+  object-fit: cover;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.12);
+}
+
+.note-box {
+  margin-top: 18px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: #f8fafc;
+  color: #334155;
+  border: 1px solid #e2e8f0;
+  font-size: 14px;
+}
