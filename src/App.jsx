@@ -77,14 +77,19 @@ const getInitialInputs = () => {
 
 const getWealthTier = (investableNetWorth) => {
   const tiers = [
-    { tier: "A0", name: "現金流警戒", threshold: -Infinity, nextThreshold: 0, nextTier: "A1", description: "可投資淨資產為負，優先處理負債、現金缺口與固定支出壓力。" },
-    { tier: "A1", name: "生存穩定", threshold: 0, nextThreshold: 300000, nextTier: "A2", description: "已有初步存款，但抗風險能力仍偏弱，應先建立緊急預備金。" },
-    { tier: "A2", name: "安全水位", threshold: 300000, nextThreshold: 1000000, nextTier: "A3", description: "具備基本現金安全水位，可以開始穩定累積投資資產。" },
-    { tier: "A3", name: "積累起點", threshold: 1000000, nextThreshold: 3000000, nextTier: "A4", description: "進入資產累積期，重點是維持儲蓄率、投資紀律與支出控管。" },
-    { tier: "A4", name: "穩健中產", threshold: 3000000, nextThreshold: 8000000, nextTier: "A5", description: "資產與現金流已有基礎，應開始優化配置效率與長期目標。" },
-    { tier: "A5", name: "高資產上班族", threshold: 8000000, nextThreshold: 15000000, nextTier: "A6", description: "接近半財務自由，工作選擇權提高，需重視風險分散與稅務效率。" },
-    { tier: "A6", name: "準財務自由", threshold: 15000000, nextThreshold: 30000000, nextTier: "A7", description: "已具備支撐較低支出型退休生活的資產基礎，需建立提款與現金流策略。" },
-    { tier: "A7", name: "財務自由", threshold: 30000000, nextThreshold: null, nextTier: null, description: "具備高度生活選擇權，重點轉為資產保護、現金流穩定與人生配置。" },
+    { tier: "A-9", name: "負資產階段", threshold: -Infinity, nextThreshold: 0, nextTier: "A1", description: "可投資淨資產小於 0，代表負債大於可動用資產，優先目標是償還債務、降低固定支出並補足基本生活現金。" },
+    { tier: "A1", name: "初始資產階段", threshold: 0, nextThreshold: 100000, nextTier: "A2", description: "資產仍在起步階段，能滿足基本生活需求，但財務自由度較低，重點是建立第一筆緊急預備金。" },
+    { tier: "A2", name: "小額資產累積階段", threshold: 100000, nextThreshold: 500000, nextTier: "A3", description: "已有小額資產累積，開始具備部分自由度，可偶爾安排旅遊或改善生活，但仍需優先擴大現金安全水位。" },
+    { tier: "A3", name: "小資族儲蓄階段", threshold: 500000, nextThreshold: 1000000, nextTier: "A4", description: "已具備一定儲蓄能力，可支撐短期國內旅遊與生活彈性，接下來要把儲蓄轉化為長期投資資產。" },
+    { tier: "A4", name: "資產累積期", threshold: 1000000, nextThreshold: 3000000, nextTier: "A5", description: "進入資產累積期，生活相對自由，可安排短期國外旅遊，重點是維持投資紀律與避免負債膨脹。" },
+    { tier: "A5", name: "穩定中產階級", threshold: 3000000, nextThreshold: 5000000, nextTier: "A6", description: "具備穩定生活品質與基本自由度，應開始優化資產配置、保險與長期退休現金流。" },
+    { tier: "A6", name: "具備經濟實力", threshold: 5000000, nextThreshold: 10000000, nextTier: "A7", description: "生活自由度提高，可較頻繁安排國外旅遊，需重視資產配置效率與風險分散。" },
+    { tier: "A7", name: "百萬資產族", threshold: 10000000, nextThreshold: 30000000, nextTier: "A8", description: "已具備財務自由雛形，可選擇較高端生活方式，重點從累積轉向現金流與資產保護。" },
+    { tier: "A8", name: "千萬資產族", threshold: 30000000, nextThreshold: 100000000, nextTier: "A9", description: "高度自由，可依照理想生活規劃居住、工作與旅行方式，需建立完整資產配置與稅務觀念。" },
+    { tier: "A9", name: "超高淨值人士", threshold: 100000000, nextThreshold: 300000000, nextTier: "A10", description: "生活與事業具備高度掌控力，重點轉向財富傳承、風險隔離與跨資產配置。" },
+    { tier: "A10", name: "富豪級別", threshold: 300000000, nextThreshold: 1000000000, nextTier: "A11", description: "已達超級自由階段，金錢限制大幅降低，需以治理思維管理資產、稅務與家族風險。" },
+    { tier: "A11", name: "頂級富豪", threshold: 1000000000, nextThreshold: 5000000000, nextTier: "A12", description: "可追求任何夢想與大型目標，資產管理重點在家族辦公室、傳承與社會影響力。" },
+    { tier: "A12", name: "頂尖資本階層", threshold: 5000000000, nextThreshold: null, nextTier: null, description: "具備無限制自由與超越個人層面的影響力，重點是資本治理、傳承設計與長期影響力。" },
   ];
   return [...tiers].reverse().find((item) => investableNetWorth >= item.threshold) || tiers[0];
 };
@@ -150,10 +155,15 @@ function HomeButton() {
   return <a className="home-button" href="/">← 回到首頁使用財務診斷工具</a>;
 }
 
-function NumberInput({ label, value, onChange, suffix = "NTD", hint }) {
+function NumberInput({ label, value, onChange, suffix = "NTD", hint, tooltip }) {
   return (
     <label className="input-card">
-      <span>{label}</span>
+      <span className="field-label">
+        {label}
+        {tooltip && (
+          <button className="help-tip" type="button" aria-label={tooltip} title={tooltip}>?</button>
+        )}
+      </span>
       <div className="input-wrap">
         <input type="number" value={value} onChange={(e) => onChange(toNumber(e.target.value))} />
         <em>{suffix}</em>
@@ -277,10 +287,23 @@ function HomePage() {
     const investableNetWorth = currentCash + currentInvestmentAsset - estimatedPersonalLoanBalance - toNumber(data.otherDebt);
     const totalNetWorth = currentCash + currentInvestmentAsset + toNumber(data.homeValue) - estimatedMortgageBalance - estimatedPersonalLoanBalance - toNumber(data.otherDebt);
     const cashRunwayMonths = fixedExpense > 0 ? currentCash / fixedExpense : 0;
+    const dependents = toNumber(data.dependents);
     let recommendedRunwayMonths = 6;
-    if (toNumber(data.dependents) >= 1) recommendedRunwayMonths = 9;
-    if (toNumber(data.dependents) >= 2) recommendedRunwayMonths = 12;
-    if (data.incomeStability !== "stable") recommendedRunwayMonths += 3;
+    const runwayReasons = [];
+    if (dependents >= 2) {
+      recommendedRunwayMonths = 12;
+      runwayReasons.push(`需負擔 ${dependents} 人，現金安全水位建議提高到 12 個月`);
+    } else if (dependents >= 1) {
+      recommendedRunwayMonths = 9;
+      runwayReasons.push(`需負擔 ${dependents} 人，現金安全水位建議提高到 9 個月`);
+    } else {
+      runwayReasons.push("無額外扶養責任，現金安全水位基準為 6 個月");
+    }
+    if (data.incomeStability !== "stable") {
+      recommendedRunwayMonths += 3;
+      runwayReasons.push("收入穩定性不是穩定受薪，因此額外增加 3 個月緩衝");
+    }
+    const recommendedRunwayReason = runwayReasons.join("；");
     const recommendedCashTarget = fixedExpense * recommendedRunwayMonths;
     const cashGap = recommendedCashTarget - currentCash;
     const savingRate = monthlyTotalIncome > 0 ? (available / monthlyTotalIncome) * 100 : 0;
@@ -291,6 +314,7 @@ function HomePage() {
     const aggressiveBenchmarkAsset = annualIncome * ageBenchmark.aggressive;
     const incomeMultiple = annualIncome > 0 ? investableNetWorth / annualIncome : 0;
     const gapToStableBenchmark = investableNetWorth - stableBenchmarkAsset;
+    const gapToStableBenchmarkPercent = stableBenchmarkAsset > 0 ? (gapToStableBenchmark / stableBenchmarkAsset) * 100 : 0;
     const wealthTier = getWealthTier(investableNetWorth);
     const gapToNextTier = wealthTier.nextThreshold ? Math.max(wealthTier.nextThreshold - investableNetWorth, 0) : 0;
     const annualTravelBudget = toNumber(data.annualTravelBudget);
@@ -339,13 +363,15 @@ function HomePage() {
     );
     return {
       monthlyTotalIncome, annualIncome, fixedExpense, available, currentCash, currentInvestmentAsset,
-      investableNetWorth, totalNetWorth, estimatedMortgageBalance, estimatedPersonalLoanBalance, cashRunwayMonths, recommendedRunwayMonths, recommendedCashTarget, cashGap,
+      investableNetWorth, totalNetWorth, estimatedMortgageBalance, estimatedPersonalLoanBalance, cashRunwayMonths, recommendedRunwayMonths, recommendedCashTarget, cashGap, recommendedRunwayReason,
       savingRate, fixedExpenseRatio, investmentRate, ageBenchmark, stableBenchmarkAsset, conservativeBenchmarkAsset,
-      aggressiveBenchmarkAsset, incomeMultiple, gapToStableBenchmark, wealthTier, gapToNextTier, travelProgress,
+      aggressiveBenchmarkAsset, incomeMultiple, gapToStableBenchmark, gapToStableBenchmarkPercent, wealthTier, gapToNextTier, travelProgress,
       monthlyTravelSaving, suggestedCashTopUp, suggestedTravelTopUp, suggestedInvestment, financialFreedomTarget,
       financialFreedomProgress, financialFreedomGap, projectedInvestmentAtRetirement, monthsToNextTier, score,
     };
   }, [calculatedInputs]);
+
+  const isDirty = JSON.stringify(inputs) !== JSON.stringify(calculatedInputs);
 
   const cashTone = result.cashRunwayMonths >= result.recommendedRunwayMonths ? "good" : result.cashRunwayMonths >= 3 ? "warning" : "danger";
   const expenseTone = result.fixedExpenseRatio <= 50 ? "good" : result.fixedExpenseRatio <= 65 ? "warning" : "danger";
@@ -356,10 +382,10 @@ function HomePage() {
       <section className="hero">
         <div className="hero-copy">
           <p className="eyebrow">Personal FinOps 財務診斷工具</p>
-          <h1>看懂你的現金流、財務階層與同齡資產落差。</h1>
+          <h1>看懂你的現金流、財務階層與同齡資產落差</h1>
           <p>
             輸入收入、家庭責任、支出、資產與負債，快速產出財務健康分數、
-            現金安全水位、A0–A7 財務階層、同齡收入倍數比較與下一步改善建議。
+            現金安全水位、A-9–A12 財務階層、同齡收入倍數比較與下一步改善建議。
           </p>
 
           <div className="hero-actions">
@@ -369,7 +395,7 @@ function HomePage() {
 
           <div className="hero-pills">
             <span>財務健康分數</span>
-            <span>A0–A7 財務階層</span>
+            <span>A-9–A12 財務階層</span>
             <span>同齡收入倍數</span>
           </div>
         </div>
@@ -382,29 +408,29 @@ function HomePage() {
 
           <div className="hero-score">
             <span>財務健康分數</span>
-            <strong>72</strong>
+            <strong>{Math.round(result.score)}</strong>
             <em>/ 100</em>
           </div>
 
           <div className="hero-mini-grid">
             <div>
               <span>財務階層</span>
-              <strong>A4</strong>
-              <small>穩健中產</small>
+              <strong>{result.wealthTier.tier}</strong>
+              <small>{result.wealthTier.name}</small>
             </div>
             <div>
               <span>現金水位</span>
-              <strong>6.8</strong>
+              <strong>{result.cashRunwayMonths.toFixed(1)}</strong>
               <small>個月</small>
             </div>
             <div>
               <span>同齡比較</span>
-              <strong>+18%</strong>
-              <small>高於穩健基準</small>
+              <strong>{result.gapToStableBenchmark >= 0 ? "+" : ""}{formatPercent(result.gapToStableBenchmarkPercent, 0)}</strong>
+              <small>{result.gapToStableBenchmark >= 0 ? "高於穩健基準" : "低於穩健基準"}</small>
             </div>
             <div>
               <span>自由進度</span>
-              <strong>24%</strong>
+              <strong>{formatPercent(result.financialFreedomProgress, 0)}</strong>
               <small>目標完成率</small>
             </div>
           </div>
@@ -425,6 +451,7 @@ function HomePage() {
             預設值已改為 30 歲單身上班族的常見試算情境。瀏覽器會自動保留你前一次輸入的資料；
             修改欄位後請按「計算我的財務診斷」更新下方報告。
           </p>
+          {isDirty && <p className="pending-note">你已修改輸入資料，但下方報告尚未更新。請按「計算我的財務診斷」。</p>}
         </div>
 
         <div className="input-groups">
@@ -440,7 +467,7 @@ function HomePage() {
               <NumberInput label="年齡" value={inputs.age} onChange={(v) => update("age", v)} suffix="歲" />
               <SelectInput label="家庭型態" value={inputs.householdType} onChange={(v) => update("householdType", v)} options={householdOptions} />
               <NumberInput label="家庭總人數" value={inputs.householdMembers} onChange={(v) => update("householdMembers", v)} suffix="人" />
-              <NumberInput label="需由你負擔的人數" value={inputs.dependents} onChange={(v) => update("dependents", v)} suffix="人" hint="重點是有幾人依賴你的收入。" />
+              <NumberInput label="需由你負擔的家人人數" value={inputs.dependents} onChange={(v) => update("dependents", v)} suffix="人" hint="只負責自己請填 0；此欄不含本人。" tooltip="此欄是指除了你自己以外，主要需要靠你的收入負擔生活費的人數。只負責本人費用請填 0；若主要負擔 1 位父母、伴侶或小孩就填 1。" />
             </div>
           </section>
 
@@ -568,7 +595,7 @@ function HomePage() {
         <div className="calculator-actions">
           <button className="calculate-button" onClick={handleCalculate}>計算我的財務診斷</button>
           <button className="reset-button" onClick={resetToDefault}>恢復 30 歲預設範例</button>
-          <p>{hasCalculated ? "已依目前輸入資料更新下方診斷報告。" : "下方先顯示預設範例；修改欄位後請按計算更新報告。"}</p>
+          <p>{isDirty ? "資料已修改但尚未重新計算；請按上方藍色按鈕更新診斷報告。" : hasCalculated ? "已依目前輸入資料更新下方診斷報告。" : "下方先顯示預設範例；修改欄位後請按計算更新報告。"}</p>
         </div>
       </section>
 
@@ -576,7 +603,7 @@ function HomePage() {
         <div className="section-heading">
           <p className="eyebrow">Step 2</p>
           <h2>你的個人 FinOps 診斷報告</h2>
-          <p>以下結果依你輸入的數字與簡化假設估算，適合用來檢視方向，不代表投資建議或官方財富排名。</p>
+          <p>以下結果依「已計算」資料估算，目前報告使用年齡為 {calculatedInputs.age} 歲。若你剛修改欄位，請先按「計算我的財務診斷」更新報告。</p>
         </div>
         <div className="score-card">
           <div>
@@ -594,10 +621,10 @@ function HomePage() {
           <MetricCard title="可投資淨資產" value={formatNTD(result.investableNetWorth)} note="現金＋投資資產－信貸與其他負債，不含自住房。" />
           <MetricCard title="貸款剩餘估算" value={formatNTD(result.estimatedMortgageBalance + result.estimatedPersonalLoanBalance)} note="基本版以月繳 × 剩餘期數估算；進階欄位可填實際本金。" />
           <MetricCard title="總淨資產" value={formatNTD(result.totalNetWorth)} note="含自住房與貸款。若未填實際本金，系統以月繳 × 剩餘期數估算。" />
-          <MetricCard title="距離下一階層" value={result.wealthTier.nextTier ? formatNTD(result.gapToNextTier) : "已達 A7"} note={result.monthsToNextTier ? `依建議投資金額估算約 ${Math.max(result.monthsToNextTier, 0)} 個月。` : "重點轉向資產保護與現金流管理。"} />
+          <MetricCard title="距離下一階層" value={result.wealthTier.nextTier ? formatNTD(result.gapToNextTier) : "已達 A12"} note={result.monthsToNextTier ? `依建議投資金額估算約 ${Math.max(result.monthsToNextTier, 0)} 個月。` : "重點轉向資產保護與現金流管理。"} />
           <MetricCard title="同齡收入倍數" value={`${result.incomeMultiple.toFixed(1)} 倍`} note={`${result.ageBenchmark.label} 穩健基準約 ${result.ageBenchmark.stable} 倍年收入。`} tone={benchmarkTone} />
           <MetricCard title="同齡穩健基準落差" value={formatNTD(result.gapToStableBenchmark)} note={result.gapToStableBenchmark >= 0 ? "目前高於穩健基準。" : "目前低於穩健基準，建議提高儲蓄與投資紀律。"} tone={benchmarkTone} />
-          <MetricCard title="現金安全月數" value={`${result.cashRunwayMonths.toFixed(1)} 個月`} note={`依家庭責任與收入穩定性，建議 ${result.recommendedRunwayMonths} 個月。`} tone={cashTone} />
+          <MetricCard title="現金安全月數" value={`${result.cashRunwayMonths.toFixed(1)} 個月`} note={`${result.recommendedRunwayReason}。建議 ${result.recommendedRunwayMonths} 個月。`} tone={cashTone} />
           <MetricCard title="固定支出比" value={formatPercent(result.fixedExpenseRatio)} note="超過 60% 代表現金流壓力偏高。" tone={expenseTone} />
           <MetricCard title="每月可分配金額" value={formatNTD(result.available)} note="月收入＋獎金月平均－固定支出。" tone={result.available >= 0 ? "good" : "danger"} />
           <MetricCard title="財務自由進度" value={formatPercent(result.financialFreedomProgress)} note={`目標資產：${formatNTD(result.financialFreedomTarget)}`} />
@@ -618,7 +645,7 @@ function HomePage() {
         <div className="advice-box">
           <h3>下一步建議</h3>
           <ul>
-            <li>先確認現金水位是否達到 {result.recommendedRunwayMonths} 個月；若不足，優先補現金。</li>
+            <li>先確認現金水位是否達到 {result.recommendedRunwayMonths} 個月；這個數字由扶養責任與收入穩定性決定，不是單純由年齡決定。</li>
             <li>固定支出比若超過 60%，避免再增加長期貸款或高額固定承諾。</li>
             <li>投資金額建議採上下限制度，避免市場情緒影響現金流安全。</li>
             <li>每半年重新試算一次，追蹤財務階層與同齡收入倍數是否持續改善。</li>
@@ -669,6 +696,20 @@ function ArticlePage({ slug }) {
         <section key={section.heading} className="article-section">
           <h2>{section.heading}</h2>
           {section.body.map((paragraph) => <p key={paragraph}>{paragraph}</p>)}
+          {section.table && (
+            <div className="article-table-wrap">
+              <table className="article-table">
+                <thead>
+                  <tr>{section.table.headers.map((header) => <th key={header}>{header}</th>)}</tr>
+                </thead>
+                <tbody>
+                  {section.table.rows.map((row) => (
+                    <tr key={row.join("-")}>{row.map((cell) => <td key={cell}>{cell}</td>)}</tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </section>
       ))}
       <section className="faq-block">
