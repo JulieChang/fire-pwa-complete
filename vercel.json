@@ -39,19 +39,33 @@
     }
   ],
   "rewrites": [
-    { "source": "/monthly-saving-rate", "destination": "/index.html" },
-    { "source": "/cash-runway", "destination": "/index.html" },
-    { "source": "/travel-budget", "destination": "/index.html" },
-    { "source": "/investment-allocation", "destination": "/index.html" },
-    { "source": "/financial-freedom", "destination": "/index.html" },
-    { "source": "/wealth-tier", "destination": "/index.html" },
-    { "source": "/same-age-savings", "destination": "/index.html" },
-    { "source": "/fixed-expense-ratio", "destination": "/index.html" },
-    { "source": "/articles", "destination": "/index.html" },
-    { "source": "/blog", "destination": "/index.html" },
-    { "source": "/about", "destination": "/index.html" },
-    { "source": "/privacy-policy", "destination": "/index.html" },
-    { "source": "/disclaimer", "destination": "/index.html" },
-    { "source": "/contact", "destination": "/index.html" }
+    {
+      "source": "/monthly-saving-rate",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/blog",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/blog/:slug*",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/about",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/privacy-policy",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/disclaimer",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/contact",
+      "destination": "/index.html"
+    }
   ]
 }
