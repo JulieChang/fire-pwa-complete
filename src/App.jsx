@@ -526,7 +526,7 @@ function HomePage() {
 
           <div className="hero-pills">
             <span>財務健康分數</span>
-            <span>A-9–A12 財務階層</span>
+            <span>A-9 至 A12 財務階層</span>
             <span>官方家庭財富分位</span>
           </div>
         </div>
