@@ -1,17 +1,18 @@
-# FinOps Planner Logo Assets
+# FinOps Planner favicon / SEO update
 
-上傳方式：
-1. 將 `public/` 內所有檔案複製到你的 React/Vite 專案 `public/` 資料夾。
-2. 打開專案根目錄的 `index.html`。
-3. 刪除或取代這行：
-   `<link rel="icon" type="image/svg+xml" href="/vite.svg" />`
-4. 貼上 `index-head-snippet.html` 內的內容到 `<head>` 區塊。
-5. Commit 並 Push 到 GitHub，Vercel 會自動重新部署。
+請將本壓縮檔內容依照相同路徑上傳到 GitHub：
 
-部署後可用以下網址確認：
-- `/favicon.ico`
-- `/favicon-32x32.png`
-- `/apple-touch-icon.png`
-- `/logo.png`
+- `index.html` 放在專案根目錄，取代原本的 `index.html`
+- `public/site.webmanifest` 放在 `public/`
+- `public/manifest.webmanifest` 放在 `public/`
 
-如果瀏覽器頁籤還沒變，通常是快取，請用無痕視窗或按 Command + Shift + R 重新整理。
+你目前 `public/` 裡的 logo 與 favicon 圖檔已經有上傳，不需要重複補圖檔。
+
+部署後檢查：
+
+- https://finops-planner.vercel.app/favicon.ico
+- https://finops-planner.vercel.app/favicon-32x32.png
+- https://finops-planner.vercel.app/site.webmanifest
+- https://finops-planner.vercel.app/logo.png
+
+如果頁籤 logo 沒有馬上更新，通常是瀏覽器快取。請使用無痕視窗或 Command + Shift + R 重新整理。
