@@ -3,25 +3,41 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
     <title>個人 FinOps 財務管理工具｜現金流、投資分配與財務自由試算</title>
     <meta name="description" content="Personal FinOps Planner 是免費個人財務管理工具，協助台灣上班族試算現金安全月數、每月存錢比例、旅遊基金、投資分配、退休時財務自由達成率與財務自由缺口。" />
     <meta name="keywords" content="個人財務管理,理財規劃,現金流管理,每月存錢比例,財務自由,旅遊基金,投資配置,Personal FinOps" />
     <meta name="robots" content="index, follow" />
     <meta name="theme-color" content="#0f3d91" />
+
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-T18CPFHW5M"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-T18CPFHW5M');
+    </script>
+
     <link rel="canonical" href="https://finops-planner.vercel.app/" />
+
     <link rel="icon" href="/favicon.ico" />
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
     <link rel="icon" type="image/png" sizes="64x64" href="/favicon-64x64.png" />
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/site.webmanifest" />
+
     <meta property="og:title" content="個人 FinOps 財務管理工具" />
     <meta property="og:description" content="用企業 FinOps 思維管理個人現金流、投資、旅遊基金與財務自由目標。" />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://finops-planner.vercel.app/" />
     <meta property="og:image" content="https://finops-planner.vercel.app/logo.png" />
+
     <meta name="twitter:card" content="summary" />
   </head>
+
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
