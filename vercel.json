@@ -36,36 +36,69 @@
           "value": "text/plain; charset=utf-8"
         }
       ]
+    },
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        },
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        }
+      ]
     }
   ],
-  "rewrites": [
+  "cleanUrls": true,
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "redirects": [
+    {
+      "source": "/articles",
+      "destination": "/blog",
+      "permanent": true
+    },
     {
       "source": "/monthly-saving-rate",
-      "destination": "/index.html"
+      "destination": "/blog/monthly-saving-rate",
+      "permanent": true
     },
     {
-      "source": "/blog",
-      "destination": "/index.html"
+      "source": "/cash-runway",
+      "destination": "/blog/cash-runway",
+      "permanent": true
     },
     {
-      "source": "/blog/:slug*",
-      "destination": "/index.html"
+      "source": "/travel-budget",
+      "destination": "/blog/travel-budget",
+      "permanent": true
     },
     {
-      "source": "/about",
-      "destination": "/index.html"
+      "source": "/investment-allocation",
+      "destination": "/blog/investment-allocation",
+      "permanent": true
     },
     {
-      "source": "/privacy-policy",
-      "destination": "/index.html"
+      "source": "/financial-freedom",
+      "destination": "/blog/financial-freedom",
+      "permanent": true
     },
     {
-      "source": "/disclaimer",
-      "destination": "/index.html"
+      "source": "/wealth-tier",
+      "destination": "/blog/wealth-tier",
+      "permanent": true
     },
     {
-      "source": "/contact",
-      "destination": "/index.html"
+      "source": "/same-age-savings",
+      "destination": "/blog/same-age-savings",
+      "permanent": true
+    },
+    {
+      "source": "/fixed-expense-ratio",
+      "destination": "/blog/fixed-expense-ratio",
+      "permanent": true
     }
   ]
 }
