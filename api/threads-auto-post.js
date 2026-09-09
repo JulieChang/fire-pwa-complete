@@ -169,11 +169,11 @@ function getContentFormatFromRequest(req) {
   );
 }
 
-function isAuthorized(req, cronSecret) {
-  if (!cronSecret) return true;
+export function isAuthorized(req, cronSecret) {
+  if (!cronSecret || !cronSecret.trim()) return false;
 
-  const authHeader = req.headers.authorization;
-  const querySecret = req.query.secret;
+  const authHeader = req.headers?.authorization;
+  const querySecret = req.query?.secret;
   const bodySecret = req.body?.secret;
 
   return (
