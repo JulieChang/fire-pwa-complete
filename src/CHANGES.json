@@ -1,0 +1,49 @@
+{
+  "base_archive_commit": "94907670f0fcc2fe158e8483637b823a33a1e61c",
+  "updated_at": "2026-09-09",
+  "added": [
+    ".gitignore",
+    "PRODUCT-ROADMAP.md",
+    "VALIDATION.md",
+    "scripts/prerender.mjs",
+    "scripts/verify-build.mjs",
+    "src/MethodologyContent.jsx",
+    "src/entry-server.jsx",
+    "src/finance.js",
+    "src/seo.js",
+    "tests/auth.test.mjs",
+    "tests/finance.test.mjs"
+  ],
+  "modified": [
+    "README.md",
+    "api/threads-auto-post.js",
+    "index.html",
+    "package-lock.json",
+    "package.json",
+    "src/App.css",
+    "src/App.jsx",
+    "src/articles.js",
+    "src/main.jsx",
+    "vercel.json"
+  ],
+  "removed": [
+    "index-head-snippet.html",
+    "public/1.txt",
+    "public/finops-planner-adsense-logic-logo-ready-v2.zip",
+    "public/finops-planner-update-v10.zip",
+    "public/index.html",
+    "public/package-lock.json",
+    "public/package.json",
+    "public/vercel.json",
+    "public/vite.config.js",
+    "src/2.txt",
+    "src/ads.txt",
+    "src/index.html",
+    "src/package-lock.json",
+    "src/package.json",
+    "src/vercel.json",
+    "src/vite.config.js",
+    "test.txt"
+  ],
+  "note": "dist 是已建置的前端產物；請用整個專案在 Vercel 建置，以保留 api。網頁上傳檔案不會自動執行 removed 清單的刪除。"
+}

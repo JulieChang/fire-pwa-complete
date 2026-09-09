@@ -1,45 +1,13 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import GrowthAgent from "./GrowthAgent";
 import { articles } from "./articles";
 import "./App.css";
+import { defaultInputs, calculatePlan, normalizeInputs, validateInputs, TAIWAN_OFFICIAL_SOURCE_NOTE } from "./finance.js";
+import { SITE_URL } from "./seo.js";
+import MethodologyContent from "./MethodologyContent.jsx";
 
-const isDev = window.location.search.includes("dev");
+const isDev = typeof window !== "undefined" && window.location.search.includes("dev");
 const STORAGE_KEY = "finopsPlannerInputsV3";
-
-const defaultInputs = {
-  age: 30,
-  householdType: "single",
-  householdMembers: 1,
-  dependents: 0,
-  incomeStability: "stable",
-  monthlyIncome: 48000,
-  annualBonus: 96000,
-  otherAnnualIncome: 0,
-  mortgage: 0,
-  mortgageRemainingMonths: 0,
-  personalLoan: 0,
-  personalLoanRemainingMonths: 0,
-  insurance: 4000,
-  livingExpense: 22000,
-  utilities: 2500,
-  transportation: 2500,
-  familySupport: 0,
-  otherFixedExpense: 2000,
-  currentCash: 180000,
-  cashGoal: 180000,
-  currentInvestmentAsset: 300000,
-  homeValue: 0,
-  mortgageBalance: 0,
-  personalLoanBalance: 0,
-  otherDebt: 0,
-  annualTravelBudget: 60000,
-  currentTravelFund: 15000,
-  minInvestment: 6000,
-  maxInvestment: 12000,
-  annualReturnRate: 6,
-  retirementMonthlyCashflow: 50000,
-  retirementAge: 60,
-};
 
 const householdOptions = {
   single: "單身 / 自己負擔自己",
@@ -69,128 +37,10 @@ const toNumber = (value) => Number(value) || 0;
 const getInitialInputs = () => {
   try {
     const saved = window.localStorage.getItem(STORAGE_KEY);
-    return saved ? { ...defaultInputs, ...JSON.parse(saved) } : defaultInputs;
+    return saved ? normalizeInputs(JSON.parse(saved)) : defaultInputs;
   } catch {
     return defaultInputs;
   }
-};
-
-const getWealthTier = (investableNetWorth) => {
-  const tiers = [
-    { tier: "A-9", name: "負資產階段", threshold: -Infinity, nextThreshold: 0, nextTier: "A1", description: "可投資淨資產小於 0，代表負債大於可動用資產，優先目標是償還債務、降低固定支出並補足基本生活現金。" },
-    { tier: "A1", name: "初始資產階段", threshold: 0, nextThreshold: 100000, nextTier: "A2", description: "資產仍在起步階段，能滿足基本生活需求，但財務自由度較低，重點是建立第一筆緊急預備金。" },
-    { tier: "A2", name: "小額資產累積階段", threshold: 100000, nextThreshold: 500000, nextTier: "A3", description: "已有小額資產累積，開始具備部分自由度，可偶爾安排旅遊或改善生活，但仍需優先擴大現金安全水位。" },
-    { tier: "A3", name: "小資族儲蓄階段", threshold: 500000, nextThreshold: 1000000, nextTier: "A4", description: "已具備一定儲蓄能力，可支撐短期國內旅遊與生活彈性，接下來要把儲蓄轉化為長期投資資產。" },
-    { tier: "A4", name: "資產累積期", threshold: 1000000, nextThreshold: 3000000, nextTier: "A5", description: "進入資產累積期，生活相對自由，可安排短期國外旅遊，重點是維持投資紀律與避免負債膨脹。" },
-    { tier: "A5", name: "穩定中產階級", threshold: 3000000, nextThreshold: 5000000, nextTier: "A6", description: "具備穩定生活品質與基本自由度，應開始優化資產配置、保險與長期退休現金流。" },
-    { tier: "A6", name: "具備經濟實力", threshold: 5000000, nextThreshold: 10000000, nextTier: "A7", description: "生活自由度提高，可較頻繁安排國外旅遊，需重視資產配置效率與風險分散。" },
-    { tier: "A7", name: "百萬資產族", threshold: 10000000, nextThreshold: 30000000, nextTier: "A8", description: "已具備財務自由雛形，可選擇較高端生活方式，重點從累積轉向現金流與資產保護。" },
-    { tier: "A8", name: "千萬資產族", threshold: 30000000, nextThreshold: 100000000, nextTier: "A9", description: "高度自由，可依照理想生活規劃居住、工作與旅行方式，需建立完整資產配置與稅務觀念。" },
-    { tier: "A9", name: "超高淨值人士", threshold: 100000000, nextThreshold: 300000000, nextTier: "A10", description: "生活與事業具備高度掌控力，重點轉向財富傳承、風險隔離與跨資產配置。" },
-    { tier: "A10", name: "富豪級別", threshold: 300000000, nextThreshold: 1000000000, nextTier: "A11", description: "已達超級自由階段，金錢限制大幅降低，需以治理思維管理資產、稅務與家族風險。" },
-    { tier: "A11", name: "頂級富豪", threshold: 1000000000, nextThreshold: 5000000000, nextTier: "A12", description: "可追求任何夢想與大型目標，資產管理重點在家族辦公室、傳承與社會影響力。" },
-    { tier: "A12", name: "頂尖資本階層", threshold: 5000000000, nextThreshold: null, nextTier: null, description: "具備無限制自由與超越個人層面的影響力，重點是資本治理、傳承設計與長期影響力。" },
-  ];
-  return [...tiers].reverse().find((item) => investableNetWorth >= item.threshold) || tiers[0];
-};
-
-
-const taiwanHouseholdWealthDeciles = [
-  { label: "D1", threshold: 1430000, percentile: "約高於 10% 家庭", description: "低於或接近第 1 十分位門檻" },
-  { label: "D2", threshold: 3190000, percentile: "約高於 20% 家庭", description: "接近第 2 十分位門檻" },
-  { label: "D3", threshold: 4900000, percentile: "約高於 30% 家庭", description: "接近第 3 十分位門檻" },
-  { label: "D4", threshold: 6770000, percentile: "約高於 40% 家庭", description: "接近第 4 十分位門檻" },
-  { label: "D5", threshold: 8940000, percentile: "約高於 50% 家庭", description: "接近台灣家庭財富中位數" },
-  { label: "D6", threshold: 11710000, percentile: "約高於 60% 家庭", description: "高於家庭財富中位數、接近第 6 十分位" },
-  { label: "D7", threshold: 15470000, percentile: "約高於 70% 家庭", description: "接近第 7 十分位門檻" },
-  { label: "D8", threshold: 21340000, percentile: "約高於 80% 家庭", description: "接近第 8 十分位門檻" },
-  { label: "D9", threshold: 33910000, percentile: "約高於 90% 家庭", description: "接近第 9 十分位門檻" },
-];
-
-const TAIWAN_HOUSEHOLD_WEALTH_MEDIAN = 8940000;
-const TAIWAN_OFFICIAL_SOURCE_NOTE = "資料來源：行政院主計總處國富統計，110 年家庭財富分配統計，113 年發布。114 年家庭財富分配統計預計於 117 年 4 月下旬發布。";
-
-const getTaiwanHouseholdWealthPosition = (totalNetWorth) => {
-  const value = Number(totalNetWorth) || 0;
-  if (value < taiwanHouseholdWealthDeciles[0].threshold) {
-    return {
-      label: "低於 D1",
-      percentile: "低於第 1 十分位門檻",
-      description: "總淨資產低於家庭財富第 1 十分位門檻",
-      nextLabel: "D1",
-      nextThreshold: taiwanHouseholdWealthDeciles[0].threshold,
-    };
-  }
-
-  let current = taiwanHouseholdWealthDeciles[0];
-  let next = null;
-  for (let i = 0; i < taiwanHouseholdWealthDeciles.length; i += 1) {
-    const item = taiwanHouseholdWealthDeciles[i];
-    const following = taiwanHouseholdWealthDeciles[i + 1] || null;
-    if (value >= item.threshold) {
-      current = item;
-      next = following;
-    }
-  }
-
-  return {
-    ...current,
-    nextLabel: next?.label || null,
-    nextThreshold: next?.threshold || null,
-  };
-};
-
-const getWealthTierScore = (tier) => {
-  const scores = {
-    "A-9": 0,
-    A1: 3,
-    A2: 6,
-    A3: 9,
-    A4: 12,
-    A5: 15,
-    A6: 17,
-    A7: 19,
-    A8: 20,
-    A9: 20,
-    A10: 20,
-    A11: 20,
-    A12: 20,
-  };
-  return scores[tier] ?? 0;
-};
-
-const getTaiwanWealthDecileScore = (label) => {
-  if (label === "低於 D1") return 0;
-  const match = String(label).match(/D(\d+)/);
-  if (!match) return 0;
-  return clamp(Number(match[1]), 0, 9);
-};
-
-const getFixedExpenseScore = (fixedExpenseRatio) => {
-  if (fixedExpenseRatio <= 40) return 7;
-  if (fixedExpenseRatio <= 50) return 5.5;
-  if (fixedExpenseRatio <= 60) return 4;
-  if (fixedExpenseRatio <= 70) return 2.5;
-  return 1;
-};
-
-const getAvailableCashflowScore = (available, monthlyTotalIncome) => {
-  if (available <= 0 || monthlyTotalIncome <= 0) return 0;
-  const availableRate = available / monthlyTotalIncome;
-  if (availableRate >= 0.25) return 3;
-  if (availableRate >= 0.15) return 2;
-  if (availableRate >= 0.05) return 1;
-  return 0.5;
-};
-
-const getAgeIncomeBenchmark = (age) => {
-  if (age < 30) return { label: "30 歲以下", conservative: 0.5, stable: 1, aggressive: 1.5 };
-  if (age < 35) return { label: "30–34 歲", conservative: 1, stable: 1.5, aggressive: 2 };
-  if (age < 40) return { label: "35–39 歲", conservative: 1.5, stable: 2, aggressive: 3 };
-  if (age < 45) return { label: "40–44 歲", conservative: 2, stable: 3, aggressive: 5 };
-  if (age < 50) return { label: "45–49 歲", conservative: 3, stable: 5, aggressive: 7 };
-  if (age < 55) return { label: "50–54 歲", conservative: 5, stable: 7, aggressive: 10 };
-  return { label: "55 歲以上", conservative: 7, stable: 10, aggressive: 12 };
 };
 
 function SiteHeader() {
@@ -199,12 +49,13 @@ function SiteHeader() {
       <a className="brand" href="/">Personal FinOps Planner</a>
       <nav className="site-nav">
         <a href="/">財務診斷</a>
-        <a href="/monthly-saving-rate">存錢比例</a>
+        <a href="/blog/monthly-saving-rate">存錢比例</a>
         <a href="/blog/cash-runway">現金水位</a>
         <a href="/blog/same-age-savings">同齡比較</a>
         <a href="/blog/wealth-tier">財務階層</a>
         <a href="/blog">文章</a>
         <a href="/about">關於本站</a>
+        <a href="/methodology">計算方法</a>
       </nav>
     </header>
   );
@@ -219,7 +70,7 @@ function SiteFooter() {
       </div>
       <div className="footer-links">
         <a href="/">首頁</a>
-        <a href="/monthly-saving-rate">每月存錢比例</a>
+        <a href="/blog/monthly-saving-rate">每月存錢比例</a>
         <a href="/blog/cash-runway">現金安全水位</a>
         <a href="/blog/travel-budget">旅遊基金</a>
         <a href="/blog/investment-allocation">投資分配</a>
@@ -228,6 +79,7 @@ function SiteFooter() {
         <a href="/blog/wealth-tier">財務階層</a>
         <a href="/blog/fixed-expense-ratio">固定支出比</a>
         <a href="/about">關於本站</a>
+        <a href="/methodology">計算方法</a>
         <a href="/privacy-policy">隱私權政策</a>
         <a href="/disclaimer">免責聲明</a>
         <a href="/contact">聯絡我們</a>
@@ -237,14 +89,14 @@ function SiteFooter() {
 }
 
 function PageShell({ children, className = "app" }) {
-  return <><SiteHeader /><main className={className}>{children}</main><SiteFooter /></>;
+  return <><a className="skip-link" href="#main-content">跳至主要內容</a><SiteHeader /><main id="main-content" className={className}>{children}</main><SiteFooter /></>;
 }
 
 function HomeButton() {
   return <a className="home-button" href="/">← 回到首頁使用財務診斷工具</a>;
 }
 
-function NumberInput({ label, value, onChange, suffix = "NTD", hint, tooltip }) {
+function NumberInput({ label, value, onChange, suffix = "NTD", hint, tooltip, min = 0, max }) {
   return (
     <label className="input-card">
       <span className="field-label">
@@ -254,7 +106,7 @@ function NumberInput({ label, value, onChange, suffix = "NTD", hint, tooltip }) 
         )}
       </span>
       <div className="input-wrap">
-        <input type="number" value={value} onChange={(e) => onChange(toNumber(e.target.value))} />
+        <input type="number" min={min} max={max} step="any" value={value} onChange={(e) => onChange(toNumber(e.target.value))} />
         <em>{suffix}</em>
       </div>
       {hint && <small>{hint}</small>}
@@ -302,7 +154,7 @@ function ArticleLinks() {
 }
 
 function SharePanel({ result }) {
-  const pageUrl = window.location.origin;
+  const pageUrl = SITE_URL;
   const shareText = `我的 Personal FinOps 診斷：流動財務階層 ${result.wealthTier.tier}｜${result.wealthTier.name}，總資產階層 ${result.totalWealthTier.tier}｜${result.totalWealthTier.name}，現金安全月數 ${result.cashRunwayMonths.toFixed(1)} 個月，收入倍數檢查點 ${result.incomeMultiple.toFixed(1)} 倍，財務自由進度 ${result.financialFreedomProgress.toFixed(1)}%。一起試算：${pageUrl}`;
   const encodedText = encodeURIComponent(shareText);
   const encodedUrl = encodeURIComponent(pageUrl);
@@ -331,10 +183,17 @@ function SharePanel({ result }) {
 }
 
 function HomePage() {
-  const [inputs, setInputs] = useState(() => getInitialInputs());
-  const [calculatedInputs, setCalculatedInputs] = useState(() => getInitialInputs());
+  const [inputs, setInputs] = useState(defaultInputs);
+  const [calculatedInputs, setCalculatedInputs] = useState(defaultInputs);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [hasCalculated, setHasCalculated] = useState(false);
+  const [errors, setErrors] = useState([]);
+  useEffect(() => {
+    const saved = getInitialInputs();
+    setInputs(saved);
+    setCalculatedInputs(saved);
+  }, []);
+
 
   const update = (key, value) => {
     const next = { ...inputs, [key]: value };
@@ -343,168 +202,28 @@ function HomePage() {
   };
 
   const handleCalculate = () => {
-    setCalculatedInputs(inputs);
+    const issues = validateInputs(inputs);
+    setErrors(issues);
+    if (issues.length) return;
+    setCalculatedInputs(normalizeInputs(inputs));
     setHasCalculated(true);
     try { window.localStorage.setItem(STORAGE_KEY, JSON.stringify(inputs)); } catch { /* ignore */ }
     setTimeout(() => document.getElementById("diagnosis-report")?.scrollIntoView({ behavior: "smooth", block: "start" }), 80);
   };
 
   const resetToDefault = () => {
+    setErrors([]);
     setInputs(defaultInputs);
     setCalculatedInputs(defaultInputs);
     setHasCalculated(false);
     try { window.localStorage.setItem(STORAGE_KEY, JSON.stringify(defaultInputs)); } catch { /* ignore */ }
   };
 
-  const result = useMemo(() => {
-    const data = calculatedInputs;
-    const monthlyIncome = toNumber(data.monthlyIncome);
-    const annualBonus = toNumber(data.annualBonus);
-    const otherAnnualIncome = toNumber(data.otherAnnualIncome);
-    const monthlyTotalIncome = monthlyIncome + annualBonus / 12 + otherAnnualIncome / 12;
-    const annualIncome = monthlyIncome * 12 + annualBonus + otherAnnualIncome;
-    const fixedExpense = toNumber(data.mortgage) + toNumber(data.personalLoan) + toNumber(data.insurance) + toNumber(data.livingExpense) + toNumber(data.utilities) + toNumber(data.transportation) + toNumber(data.familySupport) + toNumber(data.otherFixedExpense);
-    const available = monthlyTotalIncome - fixedExpense;
-    const currentCash = toNumber(data.currentCash);
-    const currentInvestmentAsset = toNumber(data.currentInvestmentAsset);
-    const estimatedMortgageBalance = toNumber(data.mortgageBalance) > 0
-      ? toNumber(data.mortgageBalance)
-      : toNumber(data.mortgage) * toNumber(data.mortgageRemainingMonths);
-    const estimatedPersonalLoanBalance = toNumber(data.personalLoanBalance) > 0
-      ? toNumber(data.personalLoanBalance)
-      : toNumber(data.personalLoan) * toNumber(data.personalLoanRemainingMonths);
-    const investableNetWorth = currentCash + currentInvestmentAsset - estimatedPersonalLoanBalance - toNumber(data.otherDebt);
-    const totalNetWorth = currentCash + currentInvestmentAsset + toNumber(data.homeValue) - estimatedMortgageBalance - estimatedPersonalLoanBalance - toNumber(data.otherDebt);
-    const cashRunwayMonths = fixedExpense > 0 ? currentCash / fixedExpense : 0;
-    const dependents = toNumber(data.dependents);
-    let recommendedRunwayMonths = 6;
-    const runwayReasons = [];
-    if (dependents >= 2) {
-      recommendedRunwayMonths = 12;
-      runwayReasons.push(`需負擔 ${dependents} 人，現金安全水位建議提高到 12 個月`);
-    } else if (dependents >= 1) {
-      recommendedRunwayMonths = 9;
-      runwayReasons.push(`需負擔 ${dependents} 人，現金安全水位建議提高到 9 個月`);
-    } else {
-      runwayReasons.push("無額外扶養責任，現金安全水位基準為 6 個月");
-    }
-    if (data.incomeStability !== "stable") {
-      recommendedRunwayMonths += 3;
-      runwayReasons.push("收入穩定性不是穩定受薪，因此額外增加 3 個月緩衝");
-    }
-    const recommendedRunwayReason = runwayReasons.join("；");
-    const recommendedCashTarget = fixedExpense * recommendedRunwayMonths;
-    const cashGap = recommendedCashTarget - currentCash;
-    const savingRate = monthlyTotalIncome > 0 ? (available / monthlyTotalIncome) * 100 : 0;
-    const fixedExpenseRatio = monthlyTotalIncome > 0 ? (fixedExpense / monthlyTotalIncome) * 100 : 0;
-    const ageBenchmark = getAgeIncomeBenchmark(toNumber(data.age));
-    const stableBenchmarkAsset = annualIncome * ageBenchmark.stable;
-    const conservativeBenchmarkAsset = annualIncome * ageBenchmark.conservative;
-    const aggressiveBenchmarkAsset = annualIncome * ageBenchmark.aggressive;
-    const incomeMultiple = annualIncome > 0 ? investableNetWorth / annualIncome : 0;
-    const gapToStableBenchmark = investableNetWorth - stableBenchmarkAsset;
-    const gapToStableBenchmarkPercent = stableBenchmarkAsset > 0 ? (gapToStableBenchmark / stableBenchmarkAsset) * 100 : 0;
-    const wealthTier = getWealthTier(investableNetWorth);
-    const totalWealthTier = getWealthTier(totalNetWorth);
-    const taiwanHouseholdWealthPosition = getTaiwanHouseholdWealthPosition(totalNetWorth);
-    const gapToTaiwanMedianWealth = totalNetWorth - TAIWAN_HOUSEHOLD_WEALTH_MEDIAN;
-    const gapToNextTaiwanWealthDecile = taiwanHouseholdWealthPosition.nextThreshold ? Math.max(taiwanHouseholdWealthPosition.nextThreshold - totalNetWorth, 0) : 0;
-    const gapToNextTier = wealthTier.nextThreshold ? Math.max(wealthTier.nextThreshold - investableNetWorth, 0) : 0;
-    const gapToNextTotalTier = totalWealthTier.nextThreshold ? Math.max(totalWealthTier.nextThreshold - totalNetWorth, 0) : 0;
-    const annualTravelBudget = toNumber(data.annualTravelBudget);
-    const currentTravelFund = toNumber(data.currentTravelFund);
-    const travelProgress = annualTravelBudget > 0 ? (currentTravelFund / annualTravelBudget) * 100 : 100;
-    const monthlyTravelSaving = Math.max((annualTravelBudget - currentTravelFund) / 12, 0);
-    const minInvestment = toNumber(data.minInvestment);
-    const maxInvestment = toNumber(data.maxInvestment);
-    const financialFreedomTarget = toNumber(data.retirementMonthlyCashflow) * 12 * 25;
-    const financialFreedomProgress = financialFreedomTarget > 0 ? (investableNetWorth / financialFreedomTarget) * 100 : 0;
-    const financialFreedomGap = financialFreedomTarget - investableNetWorth;
-    const monthsToRetirement = Math.max((toNumber(data.retirementAge) - toNumber(data.age)) * 12, 0);
-    const monthlyRate = Math.pow(1 + toNumber(data.annualReturnRate) / 100, 1 / 12) - 1;
-    const growthFactor = Math.pow(1 + monthlyRate, monthsToRetirement);
-    const annuityFactor = monthlyRate === 0
-      ? monthsToRetirement
-      : (growthFactor - 1) / monthlyRate;
-    const requiredMonthlyInvestmentForTarget = monthsToRetirement > 0 && annuityFactor > 0
-      ? Math.max((financialFreedomTarget - currentInvestmentAsset * growthFactor) / annuityFactor, 0)
-      : Math.max(financialFreedomTarget - currentInvestmentAsset, 0);
-    let suggestedCashTopUp = 0;
-    let suggestedTravelTopUp = 0;
-    let suggestedInvestment = 0;
-    let allocationStrategyNote = "";
-    if (available > 0) {
-      const cappedMinimumInvestment = Math.min(minInvestment, available);
-      if (cashRunwayMonths < recommendedRunwayMonths) {
-        suggestedInvestment = Math.min(maxInvestment, cappedMinimumInvestment);
-        suggestedTravelTopUp = 0;
-        suggestedCashTopUp = Math.max(available - suggestedInvestment, 0);
-        allocationStrategyNote = "現金水位低於建議值，因此本月優先補現金，旅遊基金暫緩，投資先維持最低定期定額。";
-      } else {
-        const baselineProjection = currentInvestmentAsset * growthFactor + cappedMinimumInvestment * annuityFactor;
-        const baselineRetirementRate = financialFreedomTarget > 0 ? (baselineProjection / financialFreedomTarget) * 100 : 0;
-        if (baselineRetirementRate < 80) {
-          suggestedTravelTopUp = Math.min(monthlyTravelSaving, Math.max(available * 0.1, 0));
-          const targetInvestment = Math.max(cappedMinimumInvestment, Math.min(requiredMonthlyInvestmentForTarget, maxInvestment));
-          suggestedInvestment = Math.min(targetInvestment, Math.max(available - suggestedTravelTopUp, 0));
-          suggestedCashTopUp = Math.max(available - suggestedTravelTopUp - suggestedInvestment, 0);
-          allocationStrategyNote = "現金水位已達標但退休時達成率偏低，因此提高投資比重，旅遊基金維持低檔。";
-        } else {
-          suggestedTravelTopUp = Math.min(monthlyTravelSaving, Math.max(available * 0.2, 0));
-          suggestedInvestment = Math.min(maxInvestment, Math.max(cappedMinimumInvestment, available * 0.5));
-          suggestedCashTopUp = Math.max(available - suggestedTravelTopUp - suggestedInvestment, 0);
-          allocationStrategyNote = "現金水位與退休節奏相對穩定，可維持投資紀律，並保留旅遊與生活彈性。";
-        }
-      }
-    } else {
-      allocationStrategyNote = "本月可分配金額為負，應優先檢查固定支出與貸款壓力。";
-    }
-    suggestedCashTopUp = Math.round(suggestedCashTopUp);
-    suggestedTravelTopUp = Math.round(suggestedTravelTopUp);
-    suggestedInvestment = Math.round(suggestedInvestment);
-    const investmentRate = monthlyTotalIncome > 0 ? (suggestedInvestment / monthlyTotalIncome) * 100 : 0;
-    const projectedInvestmentAtRetirement = monthsToRetirement === 0
-      ? currentInvestmentAsset
-      : currentInvestmentAsset * growthFactor + suggestedInvestment * annuityFactor;
-    const projectedFinancialFreedomRate = financialFreedomTarget > 0 ? (projectedInvestmentAtRetirement / financialFreedomTarget) * 100 : 0;
-    const projectedFinancialFreedomGap = financialFreedomTarget - projectedInvestmentAtRetirement;
-    const monthsToNextTier = suggestedInvestment > 0 && wealthTier.nextThreshold
-      ? Math.ceil(Math.log((wealthTier.nextThreshold * monthlyRate + suggestedInvestment) / (Math.max(investableNetWorth, 0) * monthlyRate + suggestedInvestment)) / Math.log(1 + monthlyRate))
-      : null;
-    const scoreBreakdown = {
-      cashRunway: 25 * clamp(cashRunwayMonths / recommendedRunwayMonths, 0, 1),
-      fixedExpense: getFixedExpenseScore(fixedExpenseRatio),
-      availableCashflow: getAvailableCashflowScore(available, monthlyTotalIncome),
-      liquidWealthTierRaw: getWealthTierScore(wealthTier.tier),
-      taiwanWealthDecileRaw: getTaiwanWealthDecileScore(taiwanHouseholdWealthPosition.label),
-      financialFreedomCurrent: 10 * clamp(financialFreedomProgress / 100, 0, 1),
-      financialFreedomProjected: 10 * clamp(projectedFinancialFreedomRate / 100, 0, 1),
-    };
-    scoreBreakdown.cashFlowSafety = clamp(scoreBreakdown.cashRunway + scoreBreakdown.fixedExpense + scoreBreakdown.availableCashflow, 0, 35);
-    scoreBreakdown.liquidWealthTier = clamp((scoreBreakdown.liquidWealthTierRaw / 20) * 25, 0, 25);
-    scoreBreakdown.officialHouseholdWealth = clamp((scoreBreakdown.taiwanWealthDecileRaw / 9) * 20, 0, 20);
-    scoreBreakdown.longTermFreedom = clamp(scoreBreakdown.financialFreedomCurrent + scoreBreakdown.financialFreedomProjected, 0, 20);
-    const score = clamp(
-      scoreBreakdown.cashFlowSafety +
-      scoreBreakdown.liquidWealthTier +
-      scoreBreakdown.officialHouseholdWealth +
-      scoreBreakdown.longTermFreedom,
-      0,
-      100
-    );
-    return {
-      monthlyTotalIncome, annualIncome, fixedExpense, available, currentCash, currentInvestmentAsset,
-      investableNetWorth, totalNetWorth, estimatedMortgageBalance, estimatedPersonalLoanBalance, cashRunwayMonths, recommendedRunwayMonths, recommendedCashTarget, cashGap, recommendedRunwayReason,
-      savingRate, fixedExpenseRatio, investmentRate, ageBenchmark, stableBenchmarkAsset, conservativeBenchmarkAsset,
-      aggressiveBenchmarkAsset, incomeMultiple, gapToStableBenchmark, gapToStableBenchmarkPercent, wealthTier, totalWealthTier, taiwanHouseholdWealthPosition, gapToTaiwanMedianWealth, gapToNextTaiwanWealthDecile, gapToNextTier, gapToNextTotalTier, travelProgress,
-      monthlyTravelSaving, suggestedCashTopUp, suggestedTravelTopUp, suggestedInvestment, financialFreedomTarget,
-      financialFreedomProgress, financialFreedomGap, projectedInvestmentAtRetirement, projectedFinancialFreedomRate, projectedFinancialFreedomGap, requiredMonthlyInvestmentForTarget, allocationStrategyNote, monthsToNextTier, score, scoreBreakdown,
-    };
-  }, [calculatedInputs]);
+  const result = useMemo(() => calculatePlan(calculatedInputs), [calculatedInputs]);
 
   const isDirty = JSON.stringify(inputs) !== JSON.stringify(calculatedInputs);
 
-  const cashTone = result.cashRunwayMonths >= result.recommendedRunwayMonths ? "good" : result.cashRunwayMonths >= 3 ? "warning" : "danger";
+  const cashTone = result.cashGap <= 0 ? "good" : result.cashRunwayMonths >= 3 ? "warning" : "danger";
   const expenseTone = result.fixedExpenseRatio <= 50 ? "good" : result.fixedExpenseRatio <= 65 ? "warning" : "danger";
   const benchmarkTone = result.gapToStableBenchmark >= 0 ? "good" : "warning";
 
@@ -571,7 +290,7 @@ function HomePage() {
       <section className="section intro-content">
         <h2>這不是投資明牌工具，而是個人財務作戰儀表板</h2>
         <p>很多人每個月都有收入，也有投資，但真正困難的是：不知道現金水位是否安全、旅遊預算會不會超支、每月到底該投資多少，以及距離理想生活還有多遠。Personal FinOps Planner 用企業 FinOps 的邏輯，把收入、固定支出、資產、負債與人生目標拆成可管理的資金桶，協助你建立長期可執行的財務秩序。</p>
-        <p>診斷結果會區分「官方統計參考」與「退休規劃模型」。官方統計參考採台灣家庭財富分位口徑；收入倍數檢查點則是退休規劃常見模型，不是官方個人排名。</p>
+        <p>診斷結果會區分「官方統計參考」與「退休規劃模型」。官方統計參考採台灣家庭財富分位口徑；收入倍數檢查點則是本站示意模型，不是官方個人排名。</p>
       </section>
 
       <section className="section" id="calculator">
@@ -611,8 +330,8 @@ function HomePage() {
               </div>
             </div>
             <div className="form-grid compact">
-              <NumberInput label="每月固定收入" value={inputs.monthlyIncome} onChange={(v) => update("monthlyIncome", v)} />
-              <NumberInput label="年度獎金 / 業績獎金" value={inputs.annualBonus} onChange={(v) => update("annualBonus", v)} />
+              <NumberInput label="每月固定收入（實領）" hint="填入扣除薪資扣款後的實領金額；尚未入帳的獎金不算本月現金。" value={inputs.monthlyIncome} onChange={(v) => update("monthlyIncome", v)} />
+              <NumberInput label="年度獎金 / 業績獎金" hint="只用於全年收入與收入倍數，不自動攤入本月分配。" value={inputs.annualBonus} onChange={(v) => update("annualBonus", v)} />
               <NumberInput label="其他年度收入" value={inputs.otherAnnualIncome} onChange={(v) => update("otherAnnualIncome", v)} />
               <SelectInput label="收入穩定性" value={inputs.incomeStability} onChange={(v) => update("incomeStability", v)} options={incomeStabilityOptions} />
             </div>
@@ -649,7 +368,7 @@ function HomePage() {
               </div>
             </div>
             <div className="form-grid compact">
-              <NumberInput label="現金存款" value={inputs.currentCash} onChange={(v) => update("currentCash", v)} />
+              <NumberInput label="現金存款" hint="填可作為緊急預備金的現金；已指定旅遊用途的基金請另外填寫，不重複計入。" value={inputs.currentCash} onChange={(v) => update("currentCash", v)} />
               <NumberInput label="現金目標" value={inputs.cashGoal} onChange={(v) => update("cashGoal", v)} hint="可填自己的目標；診斷也會依支出自動估算建議安全水位。" />
             </div>
           </section>
@@ -666,7 +385,7 @@ function HomePage() {
               <NumberInput label="目前投資資產" value={inputs.currentInvestmentAsset} onChange={(v) => update("currentInvestmentAsset", v)} />
               <NumberInput label="每月最低投資" value={inputs.minInvestment} onChange={(v) => update("minInvestment", v)} />
               <NumberInput label="每月最高投資" value={inputs.maxInvestment} onChange={(v) => update("maxInvestment", v)} />
-              <NumberInput label="預期年化報酬率" value={inputs.annualReturnRate} onChange={(v) => update("annualReturnRate", v)} suffix="%" />
+              <NumberInput label="預期年化報酬率" min={-50} max={50} value={inputs.annualReturnRate} onChange={(v) => update("annualReturnRate", v)} suffix="%" />
             </div>
           </section>
 
@@ -709,7 +428,7 @@ function HomePage() {
               <div>
                 <h3>精準淨資產資料</h3>
                 <p>
-                  基本版已可用「月繳 × 剩餘期數」估算貸款剩餘現金流，因此不用一定要填剩餘本金。
+                  未填本金時，「月繳 × 剩餘期數」包含未來利息，只是剩餘還款總額代理值，會低估淨資產。
                   若你想讓總淨資產更精準，可在這裡填入實際房貸與信貸剩餘本金。
                 </p>
               </div>
@@ -724,9 +443,10 @@ function HomePage() {
         )}
 
         <div className="calculator-actions">
+          {errors.length > 0 && <div role="alert" className="validation-errors">{errors.map(error => <p key={error}>{error}</p>)}</div>}
           <button className="calculate-button" onClick={handleCalculate}>計算我的財務診斷</button>
           <button className="reset-button" onClick={resetToDefault}>恢復 30 歲預設範例</button>
-          <p>{isDirty ? "資料已修改但尚未重新計算；請按上方藍色按鈕更新診斷報告。" : hasCalculated ? "已依目前輸入資料更新下方診斷報告。" : "下方先顯示預設範例；修改欄位後請按計算更新報告。"}</p>
+          <p>{isDirty ? "資料已修改但尚未重新計算；請按上方藍色按鈕更新診斷報告。" : hasCalculated ? "已依目前輸入資料更新下方診斷報告。" : "下方顯示目前載入的試算；修改欄位後請按計算更新報告。"}</p>
         </div>
       </section>
 
@@ -790,15 +510,16 @@ function HomePage() {
           <MetricCard title="與家庭財富中位數差距" value={formatNTD(result.gapToTaiwanMedianWealth)} note={result.gapToTaiwanMedianWealth >= 0 ? "高於 110 年底家庭財富中位數 894 萬。" : "低於 110 年底家庭財富中位數 894 萬。"} tone={result.gapToTaiwanMedianWealth >= 0 ? "good" : "warning"} />
           <MetricCard title="收入倍數檢查點" value={`${result.incomeMultiple.toFixed(1)} 倍`} note={`${result.ageBenchmark.label} 退休規劃模型約 ${result.ageBenchmark.stable} 倍年收入，非官方排名。`} tone={benchmarkTone} />
           <MetricCard title="收入倍數差距" value={formatNTD(result.gapToStableBenchmark)} note={result.gapToStableBenchmark >= 0 ? "高於模型檢查點。" : "低於模型檢查點，建議提高儲蓄與投資紀律。"} tone={benchmarkTone} />
-          <MetricCard title="現金安全月數" value={`${result.cashRunwayMonths.toFixed(1)} 個月`} note={`${result.recommendedRunwayReason}。建議 ${result.recommendedRunwayMonths} 個月。`} tone={cashTone} />
-          <MetricCard title="固定支出比" value={formatPercent(result.fixedExpenseRatio)} note="超過 60% 代表現金流壓力偏高。" tone={expenseTone} />
-          <MetricCard title="每月可分配金額" value={formatNTD(result.available)} note="月收入＋獎金月平均－固定支出。" tone={result.available >= 0 ? "good" : "danger"} />
-          <MetricCard title="財務自由目前進度" value={formatPercent(result.financialFreedomProgress)} note={`目前可投資淨資產 ÷ 目標資產 ${formatNTD(result.financialFreedomTarget)}`} />
+          <MetricCard title="現金安全月數" value={result.fixedExpense > 0 ? `${result.cashRunwayMonths.toFixed(1)} 個月` : "未能估算"} note={`${result.recommendedRunwayReason}。建議 ${result.recommendedRunwayMonths} 個月。`} tone={cashTone} />
+          <MetricCard title="固定支出比" value={result.monthlyTotalIncome > 0 ? formatPercent(result.fixedExpenseRatio) : "無固定收入"} note="超過 60% 代表現金流壓力偏高。" tone={expenseTone} />
+          <MetricCard title="每月可分配金額" value={formatNTD(result.available)} note="每月固定實領收入－固定支出，不含未入帳獎金。" tone={result.available >= 0 ? "good" : "danger"} />
+          <MetricCard title="財務自由目前進度" value={formatPercent(result.financialFreedomProgress)} note={`目前投資資產 ÷ 目標資產 ${formatNTD(result.financialFreedomTarget)}`} />
           <MetricCard title="退休時財務自由達成率" value={formatPercent(result.projectedFinancialFreedomRate)} note={`退休時預估缺口：${formatNTD(Math.max(result.projectedFinancialFreedomGap, 0))}`} tone={result.projectedFinancialFreedomRate >= 100 ? "good" : result.projectedFinancialFreedomRate >= 80 ? "warning" : "danger"} />
         </div>
 
         <div className="benchmark-explanation">
           <h3>官方統計參考與收入倍數模型有什麼不同？</h3>
+          <p>若只填個人資產，對照家庭統計只能作量級參考。未包含全戶成員資產與負債時，不能視為你或你家庭的真實排名；綜合分數是本站自訂指標。</p>
           <p>
             <strong>台灣家庭財富分位</strong>採用主計總處國富統計的家庭財富分配口徑，
             以你的總淨資產 {formatNTD(result.totalNetWorth)} 對照家庭淨資產十分位門檻。
@@ -806,7 +527,7 @@ function HomePage() {
             若要到下一個官方分位 {result.taiwanHouseholdWealthPosition.nextLabel || "最高區間以上"}，約還差 {result.taiwanHouseholdWealthPosition.nextThreshold ? formatNTD(result.gapToNextTaiwanWealthDecile) : "無需再追下一分位"}。
           </p>
           <p>
-            <strong>收入倍數檢查點</strong>不是官方同齡資產排名，而是退休規劃常見模型。計算方式為：
+            <strong>收入倍數檢查點</strong>不是官方同齡資產排名，而是本站示意模型。計算方式為：
             <strong> 收入倍數基準 = 年收入 × 年齡區間倍數</strong>。
             目前報告使用 {result.ageBenchmark.label} 的模型倍數 {result.ageBenchmark.stable} 倍，年收入為 {formatNTD(result.annualIncome)}，
             因此模型基準約為 {formatNTD(result.stableBenchmarkAsset)}；可投資淨資產 {formatNTD(result.investableNetWorth)} 減去模型基準後，差距為 {formatNTD(result.gapToStableBenchmark)}。
@@ -819,12 +540,14 @@ function HomePage() {
         <div className="section-heading">
           <p className="eyebrow">Step 3</p>
           <h2>本月資金分配建議</h2>
+          <p>固定實領收入 {formatNTD(result.monthlyTotalIncome)} − 固定支出 {formatNTD(result.fixedExpense)} = 可分配 {formatNTD(result.available)}。獎金與其他年度收入待實際入帳後另行安排。</p>
+          <p className="muted">全年收入攤月為 {formatNTD(result.annualAverageMonthlyIncome)}，只作全年規劃參考。以下三個資金桶合計不超過本月可分配金額。</p>
         </div>
         <div className="allocation-grid">
-          <MetricCard title="建議補現金" value={formatNTD(result.suggestedCashTopUp)} note={`建議現金目標：${formatNTD(result.recommendedCashTarget)}，缺口：${formatNTD(result.cashGap)}`} tone={cashTone} />
+          <MetricCard title="建議補現金" value={formatNTD(result.suggestedCashTopUp)} note={`建議現金目標：${formatNTD(result.recommendedCashTarget)}，待補足：${formatNTD(Math.max(result.cashGap, 0))}`} tone={cashTone} />
           <MetricCard title="建議旅遊基金" value={formatNTD(result.suggestedTravelTopUp)} note={`年度旅遊基金完成率：${formatPercent(result.travelProgress)}`} />
           <MetricCard title="建議投資金額" value={formatNTD(result.suggestedInvestment)} note={`投資率約 ${formatPercent(result.investmentRate)}，可依風險承受度調整。`} />
-          <MetricCard title="退休時預估投資資產" value={formatNTD(result.projectedInvestmentAtRetirement)} note={`依目前建議投資金額、退休年齡與年化報酬率估算。`} />
+          <MetricCard title="退休時預估投資資產" value={formatNTD(result.projectedInvestmentAtRetirement)} note={`假設每月底投入相同金額；未含未來獎金投入、貸款到期釋出資金、通膨與稅費。`} />
           <MetricCard title="退休時財務自由達成率" value={formatPercent(result.projectedFinancialFreedomRate)} note={result.projectedFinancialFreedomGap > 0 ? `預估退休時距離目標仍差：${formatNTD(result.projectedFinancialFreedomGap)}` : "依目前節奏，退休時預估可達成財務自由目標。"} tone={result.projectedFinancialFreedomRate >= 100 ? "good" : result.projectedFinancialFreedomRate >= 80 ? "warning" : "danger"} />
         </div>
         <div className="advice-box">
@@ -840,6 +563,7 @@ function HomePage() {
       </section>
 
       <SharePanel result={result} />
+      <p className="source-note"><a href="/methodology">查看計算方法、資料來源與使用限制</a></p>
       <ArticleLinks />
       {isDev && <GrowthAgent />}
     </PageShell>
@@ -876,10 +600,12 @@ function ArticlePage({ slug }) {
       <p className="eyebrow">{article.category}</p>
       <h1>{article.title}</h1>
       <p className="article-desc">{article.description}</p>
-      <p className="muted">最後更新：{article.updatedAt}</p>
+      <p className="muted">內容提供：Personal FinOps Planner · 最後更新：{article.updatedAt}</p>
+      <p className="source-note">文中案例均為假設情境。<a href="/methodology">查看本站計算口徑與限制</a></p>
       <HomeButton />
-      {article.sections.map((section) => (
-        <section key={section.heading} className="article-section">
+      <nav className="article-toc" aria-label="文章目錄"><strong>本文內容</strong><ol>{article.sections.map((section, index) => <li key={section.heading}><a href={`#section-${index + 1}`}>{section.heading}</a></li>)}</ol></nav>
+      {article.sections.map((section, index) => (
+        <section id={`section-${index + 1}`} key={section.heading} className="article-section">
           <h2>{section.heading}</h2>
           {section.body.map((paragraph) => <p key={paragraph}>{paragraph}</p>)}
           {section.table && (
@@ -898,6 +624,7 @@ function ArticlePage({ slug }) {
           )}
         </section>
       ))}
+      {article.sources?.length > 0 && <section className="article-section"><h2>參考資料與計算依據</h2><ul>{article.sources.map(source => <li key={source.url}><a href={source.url}>{source.title}</a></li>)}</ul></section>}
       <section className="faq-block">
         <h2>常見問題 FAQ</h2>
         {article.faq.map((item) => (
@@ -920,9 +647,14 @@ function AboutPage() {
   return (
     <PageShell className="app article-page">
       <h1>關於個人 FinOps 財務管理工具</h1>
+      <p>Personal FinOps Planner 是獨立的個人財務教育與試算專案，以收入、支出與目標資金桶協助使用者看懂可執行的每月計畫。</p>
       <HomeButton />
       <p>個人 FinOps 財務管理工具是一個以企業 FinOps、TBM 與現金流管理概念為基礎所設計的個人理財輔助工具，目標是協助使用者更清楚地掌握每月收入、固定支出、生活費、投資配置、旅遊基金與財務自由進度之間的關係。</p>
       <p>許多人在管理個人財務時，常常只關注「這個月還剩多少錢」，卻忽略現金水位是否安全、投資比例是否合理、大型支出是否提前準備，以及固定支出是否已經超過收入可承受範圍。本工具希望用更直覺的方式，幫助使用者建立自己的財務儀表板。</p>
+      <h2>內容與維護方式</h2>
+      <p>本站以可重算的假設案例說明規劃方法，並使用 AI 協助整理內容與實作程式。官方資料會標註來源與年份；自訂分級、權重及試算假設會在<a href="/methodology">計算方法頁</a>說明。若發現錯誤，歡迎透過<a href="/contact">聯絡頁</a>提供可重現的範例。</p>
+      <h2>適合的使用方式</h2>
+      <p>先用預設數字理解計算，再填入自己的實領收入與支出，調整投資上限及現金目標比較結果。目前試算資料保存在使用者的瀏覽器，尚未提供帳號、跨裝置同步或付費訂閱。</p>
       <p>本網站提供的所有計算結果僅供個人財務規劃與教育參考，不構成任何投資、稅務、法律或保險建議。使用者仍應依自身實際財務狀況、風險承受度與人生規劃，審慎做出決策。</p>
     </PageShell>
   );
@@ -937,15 +669,17 @@ function PrivacyPolicyPage() {
       <h2>一、我們收集的資訊</h2>
       <p>本網站主要提供財務試算與規劃工具。使用者在頁面中輸入的收入、支出、投資金額、旅遊預算等資料，主要用於即時計算與畫面呈現。本網站不會要求你提供身分證字號、銀行帳號、信用卡號等高度敏感個人資料。</p>
       <h2>二、瀏覽器本機儲存</h2>
-      <p>為了讓使用者下次開啟網站時可以保留前一次輸入的試算資料，本網站會將輸入內容儲存在使用者自己的瀏覽器 localStorage 中。這些資料主要保存在使用者裝置端。</p>
+      <p>為了讓使用者下次開啟網站時可以保留前一次輸入的試算資料，本網站會將輸入內容儲存在使用者自己的瀏覽器 localStorage 中。試算由瀏覽器內的程式計算，這些欄位不會傳送到本站伺服器或 OpenAI。使用分享功能時，Threads 與 X 會收到文案中顯示的財務摘要；請確認內容後再分享。</p>
       <h2>三、Cookie 與第三方服務</h2>
-      <p>本網站可能使用 Cookie 或類似技術，以改善網站體驗、分析流量來源，或提供更合適的內容與廣告。本網站可能使用 Google Analytics、Google AdSense 等第三方服務。</p>
+      <p>本網站使用 Google Analytics 分析造訪頁面、流量來源與裝置等資訊，Google 可能透過 Cookie 與線上識別碼處理使用資料。本站不將試算欄位、診斷分數或財務金額作為 Analytics 事件傳送。網站主機亦可能處理提供服務所需的連線紀錄。</p>
+      <p>本版本只提供 Google AdSense 網站所有權驗證資訊，尚未載入廣告腳本或展示廣告。若後續啟用廣告，Google 與其他第三方供應商可能依據使用者造訪本站或其他網站的紀錄，透過 Cookie 提供廣告；啟用前將更新此政策並完成適用的同意管理設定。</p>
+      <p>你可以查閱 <a href="https://policies.google.com/technologies/partner-sites">Google 如何使用合作夥伴網站的資訊</a>、<a href="https://policies.google.com/technologies/ads">Google 廣告技術政策</a>，並透過 <a href="https://myadcenter.google.com/">My Ad Center</a>管理個人化廣告，或使用 <a href="https://tools.google.com/dlpage/gaoptout">Google Analytics 停用外掛</a>。</p>
       <h2>四、第三方連結與政策更新</h2>
       <p>本網站可能包含連往第三方網站的連結。第三方網站的資料處理方式依其政策為準。本政策可能因服務調整或法規變更而更新。</p>
       <h2>五、使用者權利</h2>
       <p>使用者可自行清除瀏覽器中的 Cookie、localStorage 或網站資料，以刪除本網站保存在裝置端的試算紀錄。本網站不會主動要求使用者提供身分證字號、銀行帳號、信用卡號或其他高度敏感個人資料。</p>
       <h2>六、聯絡我們</h2>
-      <p>若你對本隱私權政策、資料使用方式或網站內容有任何疑問，可透過聯絡頁面與我們聯繫：<a href="/contact">https://finops-planner.vercel.app/contact</a>。最後更新日期：2026 年 5 月 14 日。</p>
+      <p>若你對本隱私權政策、資料使用方式或網站內容有任何疑問，可透過聯絡頁面與我們聯繫：<a href="/contact">https://finops-planner.vercel.app/contact</a>。最後更新日期：2026 年 9 月 9 日。</p>
     </PageShell>
   );
 }
@@ -954,6 +688,7 @@ function DisclaimerPage() {
   return (
     <PageShell className="app article-page">
       <h1>財務免責聲明</h1>
+      <p>退休金額採固定報酬情境，不是成功機率；25 倍年支出不代表保證可永續提領。<a href="/methodology">完整假設與限制</a>。</p>
       <HomeButton />
       <p>本網站提供之內容與計算工具僅供一般財務規劃、現金流管理與個人理財教育參考，不構成投資建議、理財建議、保險建議、稅務建議、法律建議或任何形式的專業顧問服務。</p>
       <p>Personal FinOps Planner 所產生的現金水位、同齡比較、財務階層、每月分配建議、投資推估與財務自由目標，均依使用者自行輸入的資料與簡化假設計算。實際結果可能受到收入變化、市場波動、利率變動、通膨、稅務、家庭責任與風險承受度等因素影響。</p>
@@ -970,20 +705,23 @@ function ContactPage() {
       <p>如果你對個人 FinOps 財務管理工具有任何問題、建議、合作邀約，或發現網站內容需要修正，歡迎透過以下方式與我們聯繫。</p>
       <h2>聯絡方式</h2>
       <p>Facebook 粉絲專頁：<a href="https://www.facebook.com/finopsplanner" target="_blank" rel="noreferrer">個人 FinOps 財務管理</a></p>
+      <h2>回報錯誤時可以提供什麼？</h2>
+      <p>請附上頁面網址、預期結果與實際結果；可用假設數字重現問題，無需提供真實收入、銀行資料、密碼或帳號金鑰。</p>
       <h2>網站用途</h2>
       <p>本網站主要提供個人財務管理、現金流試算、投資分配、同齡資產比較與旅遊基金規劃相關工具。網站內容僅供一般資訊與個人規劃參考，不提供個別化投資建議。</p>
     </PageShell>
   );
 }
 
-export default function App() {
-  const path = window.location.pathname.replace(/^\//, "").replace(/\/$/, "");
+export default function App({ pathname = typeof window === "undefined" ? "/" : window.location.pathname }) {
+  const path = pathname.replace(/^\//, "").replace(/\/$/, "");
   if (path === "" || path === "index.html") return <HomePage />;
   if (path === "articles" || path === "blog") return <BlogIndexPage />;
   if (path === "about") return <AboutPage />;
   if (path === "privacy-policy") return <PrivacyPolicyPage />;
   if (path === "disclaimer") return <DisclaimerPage />;
   if (path === "contact") return <ContactPage />;
+  if (path === "methodology") return <PageShell className="app article-page"><MethodologyContent /></PageShell>;
   if (path === "monthly-saving-rate") return <ArticlePage slug="monthly-saving-rate" />;
   if (path.startsWith("blog/")) {
     const blogSlug = path.replace(/^blog\//, "");
@@ -992,5 +730,5 @@ export default function App() {
   }
   const match = articles.find((article) => article.slug === path);
   if (match) return <ArticlePage slug={path} />;
-  return <ArticlePage slug="monthly-saving-rate" />;
+  return <PageShell className="app article-page"><h1>找不到這個頁面</h1><p>網址可能已變更。你可以回到財務診斷或文章列表。</p><HomeButton /><p><a href="/blog">瀏覽所有文章</a></p></PageShell>;
 }

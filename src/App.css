@@ -861,3 +861,18 @@ summary { cursor: pointer; font-weight: 900; }
     grid-template-columns: 1fr;
   }
 }
+
+/* Reading and keyboard navigation */
+.skip-link { position: fixed; top: -100px; left: 16px; padding: 12px 20px; z-index: 100; background: #172554; color: white; }
+.skip-link:focus { top: 12px; }
+:focus-visible { outline: 3px solid #2563eb; outline-offset: 3px; }
+.article-section { scroll-margin-top: 150px; }
+.article-toc { border: 1px solid var(--line); border-radius: 14px; padding: 20px 24px; background: white; margin: 24px 0; }
+.article-toc ol { margin-bottom: 0; padding-left: 24px; }
+.article-toc a { display: inline-block; padding: 4px 0; }
+.article-page p, .article-page li { font-size: 1rem; }
+.article-page { overflow-wrap: anywhere; }
+.validation-errors { width: 100%; padding: 12px 20px; background: #fef2f2; color: #991b1b; border: 1px solid #fca5a5; border-radius: 12px; }
+.validation-errors p { margin: 4px 0; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } * { transition-duration: 0.01ms !important; } }
+@media print { .skip-link, .site-header, .calculator-actions, .share-buttons { display: none !important; } .article-toc { break-inside: avoid; } }
