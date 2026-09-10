@@ -25,6 +25,11 @@ assert.ok((await fs.readFile('dist/404.html','utf8')).includes('noindex, follow'
 const files=await fs.readdir('dist');
 for(const name of ['package.json','package-lock.json','vercel.json','vite.config.js','finops-planner-update-v10.zip','finops-planner-adsense-logic-logo-ready-v2.zip'])assert.ok(!files.includes(name),`private build file leaked: ${name}`);
 const config=JSON.parse(await fs.readFile('vercel.json','utf8'));
-assert.equal(config.cleanUrls,true);assert.equal(config.rewrites,undefined);
+assert.equal(config.cleanUrls,true);
+assert.deepEqual(config.rewrites,[{
+ source:'/api/threads-auto-post',
+ has:[{type:'query',key:'action',value:'recent-posts'}],
+ destination:'/api/threads-recent-posts'
+}]);
 for(const redirect of config.redirects)assert.ok(routes.includes(redirect.destination));
-console.log(`Verified ${routes.length} rendered routes, canonical URLs, local links/assets, schema, sitemap, ads.txt, redirects and 404.`);
+console.log(`Verified ${routes.length} rendered routes, canonical URLs, local links/assets, schema, sitemap, ads.txt, allowed rewrites, redirects and 404.`);
