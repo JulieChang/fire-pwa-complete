@@ -54,6 +54,19 @@
   "cleanUrls": true,
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
+  "rewrites": [
+    {
+      "source": "/api/threads-auto-post",
+      "has": [
+        {
+          "type": "query",
+          "key": "action",
+          "value": "recent-posts"
+        }
+      ],
+      "destination": "/api/threads-recent-posts"
+    }
+  ],
   "redirects": [
     {
       "source": "/articles",
