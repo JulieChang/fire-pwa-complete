@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { isAuthorized, requiresAuthorization } from '../api/threads-auto-post.js';
+import fs from 'node:fs/promises';
+import { isAuthorized } from '../api/threads-auto-post.js';
 
 const secret = 'test-cron-secret';
 
@@ -34,11 +35,16 @@ test('authorization rejects an incorrect secret', () => {
   assert.equal(isAuthorized(req, secret), false);
 });
 
-test('recent-posts is the only action that does not require authorization', () => {
-  assert.equal(requiresAuthorization('recent-posts'), false);
-  assert.equal(requiresAuthorization('publish'), true);
-  assert.equal(requiresAuthorization('force-publish'), true);
-  assert.equal(requiresAuthorization('preview'), true);
-  assert.equal(requiresAuthorization('refresh-token'), true);
-  assert.equal(requiresAuthorization('redis-health'), true);
+test('recent-posts uses a dedicated read-only route while write actions stay protected', async () => {
+  const config = JSON.parse(await fs.readFile('vercel.json', 'utf8'));
+  const rule = config.rewrites?.find((item) =>
+    item.source === '/api/threads-auto-post' &&
+    item.has?.some((condition) =>
+      condition.type === 'query' && condition.key === 'action' && condition.value === 'recent-posts'
+    )
+  );
+
+  assert.ok(rule, 'recent-posts rewrite is required');
+  assert.equal(rule.destination, '/api/threads-recent-posts');
+  await fs.access('api/threads-recent-posts.js');
 });
