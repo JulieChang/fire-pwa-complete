@@ -1,7 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import fs from 'node:fs/promises';
-import { isAuthorized } from '../api/threads-auto-post.js';
+import { isAuthorized, isReadOnlyAction } from '../api/threads-auto-post.js';
 
 const secret = 'test-cron-secret';
 
@@ -35,16 +34,11 @@ test('authorization rejects an incorrect secret', () => {
   assert.equal(isAuthorized(req, secret), false);
 });
 
-test('recent-posts uses a dedicated read-only route while write actions stay protected', async () => {
-  const config = JSON.parse(await fs.readFile('vercel.json', 'utf8'));
-  const rule = config.rewrites?.find((item) =>
-    item.source === '/api/threads-auto-post' &&
-    item.has?.some((condition) =>
-      condition.type === 'query' && condition.key === 'action' && condition.value === 'recent-posts'
-    )
-  );
-
-  assert.ok(rule, 'recent-posts rewrite is required');
-  assert.equal(rule.destination, '/api/threads-recent-posts');
-  await fs.access('api/threads-recent-posts.js');
+test('recent-posts is the only read-only action routed outside protected publishing logic', () => {
+  assert.equal(isReadOnlyAction('recent-posts'), true);
+  assert.equal(isReadOnlyAction('publish'), false);
+  assert.equal(isReadOnlyAction('force-publish'), false);
+  assert.equal(isReadOnlyAction('preview'), false);
+  assert.equal(isReadOnlyAction('refresh-token'), false);
+  assert.equal(isReadOnlyAction('redis-health'), false);
 });
