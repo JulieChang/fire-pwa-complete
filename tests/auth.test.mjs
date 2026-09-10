@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { isAuthorized } from '../api/threads-auto-post.js';
+import { isAuthorized, isReadOnlyAction } from '../api/threads-auto-post.js';
 
 const secret = 'test-cron-secret';
 
@@ -32,4 +32,13 @@ test('authorization rejects an incorrect secret', () => {
   };
 
   assert.equal(isAuthorized(req, secret), false);
+});
+
+test('recent-posts is the only read-only action routed outside protected publishing logic', () => {
+  assert.equal(isReadOnlyAction('recent-posts'), true);
+  assert.equal(isReadOnlyAction('publish'), false);
+  assert.equal(isReadOnlyAction('force-publish'), false);
+  assert.equal(isReadOnlyAction('preview'), false);
+  assert.equal(isReadOnlyAction('refresh-token'), false);
+  assert.equal(isReadOnlyAction('redis-health'), false);
 });
