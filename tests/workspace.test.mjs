@@ -80,6 +80,31 @@ test("manual workflow: four cards, dirty guard, save, snapshot, recovery import 
     assert.equal(document.querySelectorAll(".os-metric").length, 4);
     assert.match(document.body.textContent, /尚未建立/);
     await mount(PlanningWorkspace);
+    const cashUnit = document.querySelector('[aria-label="緊急預備金現金單位"]');
+    assert.ok(cashUnit, "cash accepts a unit selector");
+    assert.equal(cashUnit.value, "10000");
+    await fill("緊急預備金現金", "45");
+    const changeUnit = async (unit) => React.act(async () => {
+      cashUnit.value = unit;
+      cashUnit.dispatchEvent(new dom.window.Event("change", { bubbles: true }));
+    });
+    await changeUnit("1");
+    const cashInput = document.querySelector('[aria-label="緊急預備金現金"]');
+    assert.equal(cashInput.value, "450000");
+    await fill("緊急預備金現金", "7,332,775");
+    await changeUnit("10000");
+    assert.equal(cashInput.value, "733.2775");
+    await changeUnit("1");
+    assert.equal(cashInput.value, "7332775");
+    await fill("緊急預備金現金", "");
+    assert.equal(cashInput.value, "");
+    await changeUnit("10000");
+    await fill("緊急預備金現金", "2.7154");
+    await changeUnit("1");
+    assert.equal(cashInput.value, "27154");
+    await fill("緊急預備金現金", "1,23");
+    assert.equal(cashInput.value, "27154", "malformed paste must not change the amount");
+    await fill("緊急預備金現金", "450000");
     const today = new Intl.DateTimeFormat("sv-SE", {
       timeZone: "Asia/Taipei",
       year: "numeric",
@@ -95,6 +120,9 @@ test("manual workflow: four cards, dirty guard, save, snapshot, recovery import 
         .length,
       1,
     );
+    assert.equal(JSON.parse(localStorage.getItem("finopsOperatingSystemV1")).revisions[0].result.inputs.currentCash, 450000);
+    await changeUnit("10000");
+    assert.equal([...document.querySelectorAll("button")].find(b => b.textContent === "保存為新版本").disabled, false, "unit change must not dirty a calculated plan");
     await fill("每月實領收入", "50000");
     assert.equal(
       [...document.querySelectorAll("button")].find(
@@ -104,7 +132,7 @@ test("manual workflow: four cards, dirty guard, save, snapshot, recovery import 
     );
     await click("設為基準");
     await fill("已結束的月份", prev);
-    await fill("月底實際投資資產", "350000");
+    await fill("月底實際投資資產", "35");
     await click("保存月底實績");
     const backup = localStorage.getItem("finopsOperatingSystemV1");
     assert.equal(JSON.parse(backup).snapshots.length, 1);

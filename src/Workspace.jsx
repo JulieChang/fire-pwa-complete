@@ -1,3 +1,4 @@
+import MoneyInput, { largeMoneyFields, nonMoneyFields } from "./MoneyInput.jsx";
 import React, { useEffect, useMemo, useState, useRef } from "react";
 import { defaultInputs, normalizeInputs, calculatePlan } from "./finance.js";
 import {
@@ -178,6 +179,8 @@ export function DailyDashboard() {
   );
 }
 function Field({
+  money = false,
+  defaultUnit = 1,
   label,
   value,
   onChange,
@@ -187,6 +190,7 @@ function Field({
   step = "any",
   hint,
 }) {
+  if (money) return <MoneyInput label={label} value={value} onChange={onChange} defaultUnit={defaultUnit} hint={hint} />;
   return (
     <label className="os-field">
       <span>{label}</span>
@@ -570,6 +574,8 @@ export function PlanningWorkspace() {
               <Field
                 key={key}
                 label={label}
+                money={!nonMoneyFields.has(key)}
+                defaultUnit={largeMoneyFields.has(key) ? 10000 : 1}
                 value={inputs[key]}
                 onChange={(v) => updateInput(key, v)}
               />
@@ -583,6 +589,8 @@ export function PlanningWorkspace() {
               <Field
                 key={key}
                 label={label}
+                money={!nonMoneyFields.has(key)}
+                defaultUnit={largeMoneyFields.has(key) ? 10000 : 1}
                 value={inputs[key]}
                 onChange={(v) => updateInput(key, v)}
               />
@@ -626,6 +634,7 @@ export function PlanningWorkspace() {
             <Field
               key={key}
               label={label}
+              money={["retirementMonthlyExpense", "monthlyContribution"].includes(key)}
               value={a[key]}
               min={min}
               onChange={(v) => updateA(key, v)}
@@ -646,7 +655,7 @@ export function PlanningWorkspace() {
             onChange={(v) => updateA("breakMonths", v)}
           />
           <Field
-            label="空窗後每月實領收入"
+            label="空窗後每月實領收入" money
             value={a.newMonthlyIncome}
             onChange={(v) => updateA("newMonthlyIncome", v)}
           />
@@ -864,7 +873,7 @@ export function PlanningWorkspace() {
             value={snapshotMonth}
             onChange={setSnapshotMonth}
           />
-          <Field label="月底實際投資資產" value={actual} onChange={setActual} />
+          <Field money defaultUnit={10000} label="月底實際投資資產" value={actual} onChange={setActual} />
         </div>
         <button onClick={recordSnapshot} disabled={!baseline || !!storageError}>
           保存月底實績

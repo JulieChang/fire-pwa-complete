@@ -1,3 +1,4 @@
+import MoneyInput, { largeMoneyFields } from "./MoneyInput.jsx";
 import React, { useEffect, useMemo, useState } from "react";
 import GrowthAgent from "./GrowthAgent";
 import { articles } from "./articles";
@@ -99,7 +100,8 @@ function HomeButton() {
   return <a className="home-button" href="/diagnosis#calculator">← 回到完整財務診斷工具</a>;
 }
 
-function NumberInput({ label, value, onChange, suffix = "NTD", hint, tooltip, min = 0, max }) {
+function NumberInput({ moneyKey, label, value, onChange, suffix = "NTD", hint, tooltip, min = 0, max }) {
+  if (suffix === "NTD") return <MoneyInput label={label} value={value} onChange={onChange} hint={hint} className="input-card" defaultUnit={largeMoneyFields.has(moneyKey) ? 10000 : 1} />;
   return (
     <label className="input-card">
       <span className="field-label">
@@ -318,10 +320,10 @@ function HomePage() {
               </div>
             </div>
             <div className="form-grid compact">
-              <NumberInput label="年齡" value={inputs.age} onChange={(v) => update("age", v)} suffix="歲" />
+              <NumberInput moneyKey="age" label="年齡" value={inputs.age} onChange={(v) => update("age", v)} suffix="歲" />
               <SelectInput label="家庭型態" value={inputs.householdType} onChange={(v) => update("householdType", v)} options={householdOptions} />
-              <NumberInput label="家庭總人數" value={inputs.householdMembers} onChange={(v) => update("householdMembers", v)} suffix="人" />
-              <NumberInput label="需由你負擔的家人人數" value={inputs.dependents} onChange={(v) => update("dependents", v)} suffix="人" hint="只負責自己請填 0；此欄不含本人。若主要負擔 1 位父母、伴侶或小孩就填 1。" />
+              <NumberInput moneyKey="householdMembers" label="家庭總人數" value={inputs.householdMembers} onChange={(v) => update("householdMembers", v)} suffix="人" />
+              <NumberInput moneyKey="dependents" label="需由你負擔的家人人數" value={inputs.dependents} onChange={(v) => update("dependents", v)} suffix="人" hint="只負責自己請填 0；此欄不含本人。若主要負擔 1 位父母、伴侶或小孩就填 1。" />
             </div>
           </section>
 
@@ -334,9 +336,9 @@ function HomePage() {
               </div>
             </div>
             <div className="form-grid compact">
-              <NumberInput label="每月固定收入（實領）" hint="填入扣除薪資扣款後的實領金額；尚未入帳的獎金不算本月現金。" value={inputs.monthlyIncome} onChange={(v) => update("monthlyIncome", v)} />
-              <NumberInput label="年度獎金 / 業績獎金" hint="只用於全年收入與收入倍數，不自動攤入本月分配。" value={inputs.annualBonus} onChange={(v) => update("annualBonus", v)} />
-              <NumberInput label="其他年度收入" value={inputs.otherAnnualIncome} onChange={(v) => update("otherAnnualIncome", v)} />
+              <NumberInput moneyKey="monthlyIncome" label="每月固定收入（實領）" hint="填入扣除薪資扣款後的實領金額；尚未入帳的獎金不算本月現金。" value={inputs.monthlyIncome} onChange={(v) => update("monthlyIncome", v)} />
+              <NumberInput moneyKey="annualBonus" label="年度獎金 / 業績獎金" hint="只用於全年收入與收入倍數，不自動攤入本月分配。" value={inputs.annualBonus} onChange={(v) => update("annualBonus", v)} />
+              <NumberInput moneyKey="otherAnnualIncome" label="其他年度收入" value={inputs.otherAnnualIncome} onChange={(v) => update("otherAnnualIncome", v)} />
               <SelectInput label="收入穩定性" value={inputs.incomeStability} onChange={(v) => update("incomeStability", v)} options={incomeStabilityOptions} />
             </div>
           </section>
@@ -350,16 +352,16 @@ function HomePage() {
               </div>
             </div>
             <div className="form-grid compact">
-              <NumberInput label="房貸每月還款" value={inputs.mortgage} onChange={(v) => update("mortgage", v)} />
-              <NumberInput label="房貸剩餘期數" value={inputs.mortgageRemainingMonths} onChange={(v) => update("mortgageRemainingMonths", v)} suffix="期" />
-              <NumberInput label="信貸每月還款" value={inputs.personalLoan} onChange={(v) => update("personalLoan", v)} />
-              <NumberInput label="信貸剩餘期數" value={inputs.personalLoanRemainingMonths} onChange={(v) => update("personalLoanRemainingMonths", v)} suffix="期" />
-              <NumberInput label="保險費" value={inputs.insurance} onChange={(v) => update("insurance", v)} />
-              <NumberInput label="生活費" value={inputs.livingExpense} onChange={(v) => update("livingExpense", v)} />
-              <NumberInput label="水電瓦斯網路" value={inputs.utilities} onChange={(v) => update("utilities", v)} />
-              <NumberInput label="交通費" value={inputs.transportation} onChange={(v) => update("transportation", v)} />
-              <NumberInput label="孝親費 / 家庭支援" value={inputs.familySupport} onChange={(v) => update("familySupport", v)} />
-              <NumberInput label="其他固定支出" value={inputs.otherFixedExpense} onChange={(v) => update("otherFixedExpense", v)} />
+              <NumberInput moneyKey="mortgage" label="房貸每月還款" value={inputs.mortgage} onChange={(v) => update("mortgage", v)} />
+              <NumberInput moneyKey="mortgageRemainingMonths" label="房貸剩餘期數" value={inputs.mortgageRemainingMonths} onChange={(v) => update("mortgageRemainingMonths", v)} suffix="期" />
+              <NumberInput moneyKey="personalLoan" label="信貸每月還款" value={inputs.personalLoan} onChange={(v) => update("personalLoan", v)} />
+              <NumberInput moneyKey="personalLoanRemainingMonths" label="信貸剩餘期數" value={inputs.personalLoanRemainingMonths} onChange={(v) => update("personalLoanRemainingMonths", v)} suffix="期" />
+              <NumberInput moneyKey="insurance" label="保險費" value={inputs.insurance} onChange={(v) => update("insurance", v)} />
+              <NumberInput moneyKey="livingExpense" label="生活費" value={inputs.livingExpense} onChange={(v) => update("livingExpense", v)} />
+              <NumberInput moneyKey="utilities" label="水電瓦斯網路" value={inputs.utilities} onChange={(v) => update("utilities", v)} />
+              <NumberInput moneyKey="transportation" label="交通費" value={inputs.transportation} onChange={(v) => update("transportation", v)} />
+              <NumberInput moneyKey="familySupport" label="孝親費 / 家庭支援" value={inputs.familySupport} onChange={(v) => update("familySupport", v)} />
+              <NumberInput moneyKey="otherFixedExpense" label="其他固定支出" value={inputs.otherFixedExpense} onChange={(v) => update("otherFixedExpense", v)} />
             </div>
           </section>
 
@@ -372,8 +374,8 @@ function HomePage() {
               </div>
             </div>
             <div className="form-grid compact">
-              <NumberInput label="現金存款" hint="填可作為緊急預備金的現金；已指定旅遊用途的基金請另外填寫，不重複計入。" value={inputs.currentCash} onChange={(v) => update("currentCash", v)} />
-              <NumberInput label="現金目標" value={inputs.cashGoal} onChange={(v) => update("cashGoal", v)} hint="可填自己的目標；診斷也會依支出自動估算建議安全水位。" />
+              <NumberInput moneyKey="currentCash" label="現金存款" hint="填可作為緊急預備金的現金；已指定旅遊用途的基金請另外填寫，不重複計入。" value={inputs.currentCash} onChange={(v) => update("currentCash", v)} />
+              <NumberInput moneyKey="cashGoal" label="現金目標" value={inputs.cashGoal} onChange={(v) => update("cashGoal", v)} hint="可填自己的目標；診斷也會依支出自動估算建議安全水位。" />
             </div>
           </section>
 
@@ -386,10 +388,10 @@ function HomePage() {
               </div>
             </div>
             <div className="form-grid compact">
-              <NumberInput label="目前投資資產" value={inputs.currentInvestmentAsset} onChange={(v) => update("currentInvestmentAsset", v)} />
-              <NumberInput label="每月最低投資" value={inputs.minInvestment} onChange={(v) => update("minInvestment", v)} />
-              <NumberInput label="每月最高投資" value={inputs.maxInvestment} onChange={(v) => update("maxInvestment", v)} />
-              <NumberInput label="預期年化報酬率" min={-50} max={50} value={inputs.annualReturnRate} onChange={(v) => update("annualReturnRate", v)} suffix="%" />
+              <NumberInput moneyKey="currentInvestmentAsset" label="目前投資資產" value={inputs.currentInvestmentAsset} onChange={(v) => update("currentInvestmentAsset", v)} />
+              <NumberInput moneyKey="minInvestment" label="每月最低投資" value={inputs.minInvestment} onChange={(v) => update("minInvestment", v)} />
+              <NumberInput moneyKey="maxInvestment" label="每月最高投資" value={inputs.maxInvestment} onChange={(v) => update("maxInvestment", v)} />
+              <NumberInput moneyKey="annualReturnRate" label="預期年化報酬率" min={-50} max={50} value={inputs.annualReturnRate} onChange={(v) => update("annualReturnRate", v)} suffix="%" />
             </div>
           </section>
 
@@ -402,8 +404,8 @@ function HomePage() {
               </div>
             </div>
             <div className="form-grid compact">
-              <NumberInput label="年度旅遊預算" value={inputs.annualTravelBudget} onChange={(v) => update("annualTravelBudget", v)} />
-              <NumberInput label="目前旅遊基金" value={inputs.currentTravelFund} onChange={(v) => update("currentTravelFund", v)} />
+              <NumberInput moneyKey="annualTravelBudget" label="年度旅遊預算" value={inputs.annualTravelBudget} onChange={(v) => update("annualTravelBudget", v)} />
+              <NumberInput moneyKey="currentTravelFund" label="目前旅遊基金" value={inputs.currentTravelFund} onChange={(v) => update("currentTravelFund", v)} />
             </div>
           </section>
 
@@ -416,8 +418,8 @@ function HomePage() {
               </div>
             </div>
             <div className="form-grid compact">
-              <NumberInput label="退休後目標月支出" value={inputs.retirementMonthlyCashflow} onChange={(v) => update("retirementMonthlyCashflow", v)} />
-              <NumberInput label="目標退休年齡" value={inputs.retirementAge} onChange={(v) => update("retirementAge", v)} suffix="歲" />
+              <NumberInput moneyKey="retirementMonthlyCashflow" label="退休後目標月支出" value={inputs.retirementMonthlyCashflow} onChange={(v) => update("retirementMonthlyCashflow", v)} />
+              <NumberInput moneyKey="retirementAge" label="目標退休年齡" value={inputs.retirementAge} onChange={(v) => update("retirementAge", v)} suffix="歲" />
             </div>
           </section>
         </div>
@@ -438,10 +440,10 @@ function HomePage() {
               </div>
             </div>
             <div className="form-grid compact advanced-grid">
-              <NumberInput label="自住房市值（可選填）" value={inputs.homeValue} onChange={(v) => update("homeValue", v)} />
-              <NumberInput label="房貸剩餘本金（可選填）" value={inputs.mortgageBalance} onChange={(v) => update("mortgageBalance", v)} hint="不填則用房貸月繳 × 剩餘期數做簡化估算。" />
-              <NumberInput label="信貸剩餘本金（可選填）" value={inputs.personalLoanBalance} onChange={(v) => update("personalLoanBalance", v)} hint="不填則用信貸月繳 × 剩餘期數做簡化估算。" />
-              <NumberInput label="其他負債" value={inputs.otherDebt} onChange={(v) => update("otherDebt", v)} />
+              <NumberInput moneyKey="homeValue" label="自住房市值（可選填）" value={inputs.homeValue} onChange={(v) => update("homeValue", v)} />
+              <NumberInput moneyKey="mortgageBalance" label="房貸剩餘本金（可選填）" value={inputs.mortgageBalance} onChange={(v) => update("mortgageBalance", v)} hint="不填則用房貸月繳 × 剩餘期數做簡化估算。" />
+              <NumberInput moneyKey="personalLoanBalance" label="信貸剩餘本金（可選填）" value={inputs.personalLoanBalance} onChange={(v) => update("personalLoanBalance", v)} hint="不填則用信貸月繳 × 剩餘期數做簡化估算。" />
+              <NumberInput moneyKey="otherDebt" label="其他負債" value={inputs.otherDebt} onChange={(v) => update("otherDebt", v)} />
             </div>
           </div>
         )}
