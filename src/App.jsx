@@ -1,3 +1,4 @@
+import MoneyInput, { largeMoneyFields } from "./MoneyInput.jsx";
 import React, { useEffect, useMemo, useState } from "react";
 import GrowthAgent from "./GrowthAgent";
 import { articles } from "./articles";
@@ -5,6 +6,7 @@ import "./App.css";
 import { defaultInputs, calculatePlan, normalizeInputs, validateInputs, TAIWAN_OFFICIAL_SOURCE_NOTE } from "./finance.js";
 import { SITE_URL } from "./seo.js";
 import MethodologyContent from "./MethodologyContent.jsx";
+import {DailyDashboard,PlanningWorkspace} from "./Workspace.jsx";
 
 const isDev = typeof window !== "undefined" && window.location.search.includes("dev");
 const STORAGE_KEY = "finopsPlannerInputsV3";
@@ -48,7 +50,9 @@ function SiteHeader() {
     <header className="site-header">
       <a className="brand" href="/">Personal FinOps Planner</a>
       <nav className="site-nav">
-        <a href="/">財務診斷</a>
+        <a href="/">今日 Dashboard</a>
+        <a href="/planning">情境與 FIRE</a>
+        <a href="/diagnosis">完整診斷</a>
         <a href="/blog/monthly-saving-rate">存錢比例</a>
         <a href="/blog/cash-runway">現金水位</a>
         <a href="/blog/same-age-savings">同齡比較</a>
@@ -93,10 +97,11 @@ function PageShell({ children, className = "app" }) {
 }
 
 function HomeButton() {
-  return <a className="home-button" href="/">← 回到首頁使用財務診斷工具</a>;
+  return <a className="home-button" href="/diagnosis#calculator">← 回到完整財務診斷工具</a>;
 }
 
-function NumberInput({ label, value, onChange, suffix = "NTD", hint, tooltip, min = 0, max }) {
+function NumberInput({ moneyKey, label, value, onChange, suffix = "NTD", hint, tooltip, min = 0, max }) {
+  if (suffix === "NTD") return <MoneyInput label={label} value={value} onChange={onChange} hint={hint} className="input-card" defaultUnit={largeMoneyFields.has(moneyKey) ? 10000 : 1} />;
   return (
     <label className="input-card">
       <span className="field-label">
@@ -206,6 +211,7 @@ function HomePage() {
     setErrors(issues);
     if (issues.length) return;
     setCalculatedInputs(normalizeInputs(inputs));
+    try { window.localStorage.setItem("finopsCalculatedInputsV1", JSON.stringify(normalizeInputs(inputs))); } catch { /* browser storage may be unavailable */ }
     setHasCalculated(true);
     try { window.localStorage.setItem(STORAGE_KEY, JSON.stringify(inputs)); } catch { /* ignore */ }
     setTimeout(() => document.getElementById("diagnosis-report")?.scrollIntoView({ behavior: "smooth", block: "start" }), 80);
@@ -216,7 +222,7 @@ function HomePage() {
     setInputs(defaultInputs);
     setCalculatedInputs(defaultInputs);
     setHasCalculated(false);
-    try { window.localStorage.setItem(STORAGE_KEY, JSON.stringify(defaultInputs)); } catch { /* ignore */ }
+    try { window.localStorage.setItem(STORAGE_KEY, JSON.stringify(defaultInputs)); window.localStorage.setItem("finopsCalculatedInputsV1",JSON.stringify(defaultInputs)); } catch { /* ignore */ }
   };
 
   const result = useMemo(() => calculatePlan(calculatedInputs), [calculatedInputs]);
@@ -314,10 +320,10 @@ function HomePage() {
               </div>
             </div>
             <div className="form-grid compact">
-              <NumberInput label="年齡" value={inputs.age} onChange={(v) => update("age", v)} suffix="歲" />
+              <NumberInput moneyKey="age" label="年齡" value={inputs.age} onChange={(v) => update("age", v)} suffix="歲" />
               <SelectInput label="家庭型態" value={inputs.householdType} onChange={(v) => update("householdType", v)} options={householdOptions} />
-              <NumberInput label="家庭總人數" value={inputs.householdMembers} onChange={(v) => update("householdMembers", v)} suffix="人" />
-              <NumberInput label="需由你負擔的家人人數" value={inputs.dependents} onChange={(v) => update("dependents", v)} suffix="人" hint="只負責自己請填 0；此欄不含本人。若主要負擔 1 位父母、伴侶或小孩就填 1。" />
+              <NumberInput moneyKey="householdMembers" label="家庭總人數" value={inputs.householdMembers} onChange={(v) => update("householdMembers", v)} suffix="人" />
+              <NumberInput moneyKey="dependents" label="需由你負擔的家人人數" value={inputs.dependents} onChange={(v) => update("dependents", v)} suffix="人" hint="只負責自己請填 0；此欄不含本人。若主要負擔 1 位父母、伴侶或小孩就填 1。" />
             </div>
           </section>
 
@@ -330,9 +336,9 @@ function HomePage() {
               </div>
             </div>
             <div className="form-grid compact">
-              <NumberInput label="每月固定收入（實領）" hint="填入扣除薪資扣款後的實領金額；尚未入帳的獎金不算本月現金。" value={inputs.monthlyIncome} onChange={(v) => update("monthlyIncome", v)} />
-              <NumberInput label="年度獎金 / 業績獎金" hint="只用於全年收入與收入倍數，不自動攤入本月分配。" value={inputs.annualBonus} onChange={(v) => update("annualBonus", v)} />
-              <NumberInput label="其他年度收入" value={inputs.otherAnnualIncome} onChange={(v) => update("otherAnnualIncome", v)} />
+              <NumberInput moneyKey="monthlyIncome" label="每月固定收入（實領）" hint="填入扣除薪資扣款後的實領金額；尚未入帳的獎金不算本月現金。" value={inputs.monthlyIncome} onChange={(v) => update("monthlyIncome", v)} />
+              <NumberInput moneyKey="annualBonus" label="年度獎金 / 業績獎金" hint="只用於全年收入與收入倍數，不自動攤入本月分配。" value={inputs.annualBonus} onChange={(v) => update("annualBonus", v)} />
+              <NumberInput moneyKey="otherAnnualIncome" label="其他年度收入" value={inputs.otherAnnualIncome} onChange={(v) => update("otherAnnualIncome", v)} />
               <SelectInput label="收入穩定性" value={inputs.incomeStability} onChange={(v) => update("incomeStability", v)} options={incomeStabilityOptions} />
             </div>
           </section>
@@ -346,16 +352,16 @@ function HomePage() {
               </div>
             </div>
             <div className="form-grid compact">
-              <NumberInput label="房貸每月還款" value={inputs.mortgage} onChange={(v) => update("mortgage", v)} />
-              <NumberInput label="房貸剩餘期數" value={inputs.mortgageRemainingMonths} onChange={(v) => update("mortgageRemainingMonths", v)} suffix="期" />
-              <NumberInput label="信貸每月還款" value={inputs.personalLoan} onChange={(v) => update("personalLoan", v)} />
-              <NumberInput label="信貸剩餘期數" value={inputs.personalLoanRemainingMonths} onChange={(v) => update("personalLoanRemainingMonths", v)} suffix="期" />
-              <NumberInput label="保險費" value={inputs.insurance} onChange={(v) => update("insurance", v)} />
-              <NumberInput label="生活費" value={inputs.livingExpense} onChange={(v) => update("livingExpense", v)} />
-              <NumberInput label="水電瓦斯網路" value={inputs.utilities} onChange={(v) => update("utilities", v)} />
-              <NumberInput label="交通費" value={inputs.transportation} onChange={(v) => update("transportation", v)} />
-              <NumberInput label="孝親費 / 家庭支援" value={inputs.familySupport} onChange={(v) => update("familySupport", v)} />
-              <NumberInput label="其他固定支出" value={inputs.otherFixedExpense} onChange={(v) => update("otherFixedExpense", v)} />
+              <NumberInput moneyKey="mortgage" label="房貸每月還款" value={inputs.mortgage} onChange={(v) => update("mortgage", v)} />
+              <NumberInput moneyKey="mortgageRemainingMonths" label="房貸剩餘期數" value={inputs.mortgageRemainingMonths} onChange={(v) => update("mortgageRemainingMonths", v)} suffix="期" />
+              <NumberInput moneyKey="personalLoan" label="信貸每月還款" value={inputs.personalLoan} onChange={(v) => update("personalLoan", v)} />
+              <NumberInput moneyKey="personalLoanRemainingMonths" label="信貸剩餘期數" value={inputs.personalLoanRemainingMonths} onChange={(v) => update("personalLoanRemainingMonths", v)} suffix="期" />
+              <NumberInput moneyKey="insurance" label="保險費" value={inputs.insurance} onChange={(v) => update("insurance", v)} />
+              <NumberInput moneyKey="livingExpense" label="生活費" value={inputs.livingExpense} onChange={(v) => update("livingExpense", v)} />
+              <NumberInput moneyKey="utilities" label="水電瓦斯網路" value={inputs.utilities} onChange={(v) => update("utilities", v)} />
+              <NumberInput moneyKey="transportation" label="交通費" value={inputs.transportation} onChange={(v) => update("transportation", v)} />
+              <NumberInput moneyKey="familySupport" label="孝親費 / 家庭支援" value={inputs.familySupport} onChange={(v) => update("familySupport", v)} />
+              <NumberInput moneyKey="otherFixedExpense" label="其他固定支出" value={inputs.otherFixedExpense} onChange={(v) => update("otherFixedExpense", v)} />
             </div>
           </section>
 
@@ -368,8 +374,8 @@ function HomePage() {
               </div>
             </div>
             <div className="form-grid compact">
-              <NumberInput label="現金存款" hint="填可作為緊急預備金的現金；已指定旅遊用途的基金請另外填寫，不重複計入。" value={inputs.currentCash} onChange={(v) => update("currentCash", v)} />
-              <NumberInput label="現金目標" value={inputs.cashGoal} onChange={(v) => update("cashGoal", v)} hint="可填自己的目標；診斷也會依支出自動估算建議安全水位。" />
+              <NumberInput moneyKey="currentCash" label="現金存款" hint="填可作為緊急預備金的現金；已指定旅遊用途的基金請另外填寫，不重複計入。" value={inputs.currentCash} onChange={(v) => update("currentCash", v)} />
+              <NumberInput moneyKey="cashGoal" label="現金目標" value={inputs.cashGoal} onChange={(v) => update("cashGoal", v)} hint="可填自己的目標；診斷也會依支出自動估算建議安全水位。" />
             </div>
           </section>
 
@@ -382,10 +388,10 @@ function HomePage() {
               </div>
             </div>
             <div className="form-grid compact">
-              <NumberInput label="目前投資資產" value={inputs.currentInvestmentAsset} onChange={(v) => update("currentInvestmentAsset", v)} />
-              <NumberInput label="每月最低投資" value={inputs.minInvestment} onChange={(v) => update("minInvestment", v)} />
-              <NumberInput label="每月最高投資" value={inputs.maxInvestment} onChange={(v) => update("maxInvestment", v)} />
-              <NumberInput label="預期年化報酬率" min={-50} max={50} value={inputs.annualReturnRate} onChange={(v) => update("annualReturnRate", v)} suffix="%" />
+              <NumberInput moneyKey="currentInvestmentAsset" label="目前投資資產" value={inputs.currentInvestmentAsset} onChange={(v) => update("currentInvestmentAsset", v)} />
+              <NumberInput moneyKey="minInvestment" label="每月最低投資" value={inputs.minInvestment} onChange={(v) => update("minInvestment", v)} />
+              <NumberInput moneyKey="maxInvestment" label="每月最高投資" value={inputs.maxInvestment} onChange={(v) => update("maxInvestment", v)} />
+              <NumberInput moneyKey="annualReturnRate" label="預期年化報酬率" min={-50} max={50} value={inputs.annualReturnRate} onChange={(v) => update("annualReturnRate", v)} suffix="%" />
             </div>
           </section>
 
@@ -398,8 +404,8 @@ function HomePage() {
               </div>
             </div>
             <div className="form-grid compact">
-              <NumberInput label="年度旅遊預算" value={inputs.annualTravelBudget} onChange={(v) => update("annualTravelBudget", v)} />
-              <NumberInput label="目前旅遊基金" value={inputs.currentTravelFund} onChange={(v) => update("currentTravelFund", v)} />
+              <NumberInput moneyKey="annualTravelBudget" label="年度旅遊預算" value={inputs.annualTravelBudget} onChange={(v) => update("annualTravelBudget", v)} />
+              <NumberInput moneyKey="currentTravelFund" label="目前旅遊基金" value={inputs.currentTravelFund} onChange={(v) => update("currentTravelFund", v)} />
             </div>
           </section>
 
@@ -412,8 +418,8 @@ function HomePage() {
               </div>
             </div>
             <div className="form-grid compact">
-              <NumberInput label="退休後目標月支出" value={inputs.retirementMonthlyCashflow} onChange={(v) => update("retirementMonthlyCashflow", v)} />
-              <NumberInput label="目標退休年齡" value={inputs.retirementAge} onChange={(v) => update("retirementAge", v)} suffix="歲" />
+              <NumberInput moneyKey="retirementMonthlyCashflow" label="退休後目標月支出" value={inputs.retirementMonthlyCashflow} onChange={(v) => update("retirementMonthlyCashflow", v)} />
+              <NumberInput moneyKey="retirementAge" label="目標退休年齡" value={inputs.retirementAge} onChange={(v) => update("retirementAge", v)} suffix="歲" />
             </div>
           </section>
         </div>
@@ -434,10 +440,10 @@ function HomePage() {
               </div>
             </div>
             <div className="form-grid compact advanced-grid">
-              <NumberInput label="自住房市值（可選填）" value={inputs.homeValue} onChange={(v) => update("homeValue", v)} />
-              <NumberInput label="房貸剩餘本金（可選填）" value={inputs.mortgageBalance} onChange={(v) => update("mortgageBalance", v)} hint="不填則用房貸月繳 × 剩餘期數做簡化估算。" />
-              <NumberInput label="信貸剩餘本金（可選填）" value={inputs.personalLoanBalance} onChange={(v) => update("personalLoanBalance", v)} hint="不填則用信貸月繳 × 剩餘期數做簡化估算。" />
-              <NumberInput label="其他負債" value={inputs.otherDebt} onChange={(v) => update("otherDebt", v)} />
+              <NumberInput moneyKey="homeValue" label="自住房市值（可選填）" value={inputs.homeValue} onChange={(v) => update("homeValue", v)} />
+              <NumberInput moneyKey="mortgageBalance" label="房貸剩餘本金（可選填）" value={inputs.mortgageBalance} onChange={(v) => update("mortgageBalance", v)} hint="不填則用房貸月繳 × 剩餘期數做簡化估算。" />
+              <NumberInput moneyKey="personalLoanBalance" label="信貸剩餘本金（可選填）" value={inputs.personalLoanBalance} onChange={(v) => update("personalLoanBalance", v)} hint="不填則用信貸月繳 × 剩餘期數做簡化估算。" />
+              <NumberInput moneyKey="otherDebt" label="其他負債" value={inputs.otherDebt} onChange={(v) => update("otherDebt", v)} />
             </div>
           </div>
         )}
@@ -497,7 +503,7 @@ function HomePage() {
             <p><strong>長期自由進度 20 分</strong> = 目前財務自由進度 {result.scoreBreakdown.financialFreedomCurrent.toFixed(1)} / 10 + 退休時達成率 {result.scoreBreakdown.financialFreedomProjected.toFixed(1)} / 10。</p>
           </div>
           <p>
-            首頁「診斷報告預覽」會保留財務健康總分、現金流安全、流動資產階層與官方家庭財富分位；同齡收入倍數比較則放在完整報告中，作為退休規劃模型參考，而非官方排名。
+            本頁「診斷報告預覽」會保留財務健康總分、現金流安全、流動資產階層與官方家庭財富分位；同齡收入倍數比較則放在完整報告中，作為退休規劃模型參考，而非官方排名。
           </p>
         </div>
         <div className="metrics-grid">
@@ -541,7 +547,7 @@ function HomePage() {
           <p className="eyebrow">Step 3</p>
           <h2>本月資金分配建議</h2>
           <p>固定實領收入 {formatNTD(result.monthlyTotalIncome)} − 固定支出 {formatNTD(result.fixedExpense)} = 可分配 {formatNTD(result.available)}。獎金與其他年度收入待實際入帳後另行安排。</p>
-          <p className="muted">全年收入攤月為 {formatNTD(result.annualAverageMonthlyIncome)}，只作全年規劃參考。以下三個資金桶合計不超過本月可分配金額。</p>
+          <p className="muted">全年收入攤月為 {formatNTD(result.annualAverageMonthlyIncome)}，只作全年規劃參考。{result.available > 0 ? "以下三個資金桶合計不超過本月可分配金額。" : `本月無新增分配資金，現金流缺口 ${formatNTD(Math.max(0,-result.available))}。`}</p>
         </div>
         <div className="allocation-grid">
           <MetricCard title="建議補現金" value={formatNTD(result.suggestedCashTopUp)} note={`建議現金目標：${formatNTD(result.recommendedCashTarget)}，待補足：${formatNTD(Math.max(result.cashGap, 0))}`} tone={cashTone} />
@@ -637,7 +643,7 @@ function ArticlePage({ slug }) {
       <div className="cta-box">
         <h2>用 Personal FinOps Planner 試算你的財務位置</h2>
         <p>回到首頁輸入自己的收入、家庭責任、支出、資產與負債，產出你的現金安全水位、同齡比較、財務階層與財務自由進度。</p>
-        <a href="/" className="primary-button">免費開始財務診斷</a>
+        <a href="/diagnosis#calculator" className="primary-button">免費開始財務診斷</a>
       </div>
     </PageShell>
   );
@@ -669,7 +675,7 @@ function PrivacyPolicyPage() {
       <h2>一、我們收集的資訊</h2>
       <p>本網站主要提供財務試算與規劃工具。使用者在頁面中輸入的收入、支出、投資金額、旅遊預算等資料，主要用於即時計算與畫面呈現。本網站不會要求你提供身分證字號、銀行帳號、信用卡號等高度敏感個人資料。</p>
       <h2>二、瀏覽器本機儲存</h2>
-      <p>為了讓使用者下次開啟網站時可以保留前一次輸入的試算資料，本網站會將輸入內容儲存在使用者自己的瀏覽器 localStorage 中。試算由瀏覽器內的程式計算，這些欄位不會傳送到本站伺服器或 OpenAI。使用分享功能時，Threads 與 X 會收到文案中顯示的財務摘要；請確認內容後再分享。</p>
+      <p>為了讓使用者下次開啟網站時可以保留前一次輸入的試算資料，本網站會將輸入內容儲存在使用者自己的瀏覽器 localStorage 中。試算由瀏覽器內的程式計算，這些欄位不會傳送到本站伺服器或 OpenAI。情境規劃另保存使用者確認的方案、版本與月底實績；可在規劃頁匯出 JSON 備份，匯入需再次確認。使用分享功能時，Threads 與 X 會收到文案中顯示的財務摘要；請確認內容後再分享。</p>
       <h2>三、Cookie 與第三方服務</h2>
       <p>本網站使用 Google Analytics 分析造訪頁面、流量來源與裝置等資訊，Google 可能透過 Cookie 與線上識別碼處理使用資料。本站不將試算欄位、診斷分數或財務金額作為 Analytics 事件傳送。網站主機亦可能處理提供服務所需的連線紀錄。</p>
       <p>本版本只提供 Google AdSense 網站所有權驗證資訊，尚未載入廣告腳本或展示廣告。若後續啟用廣告，Google 與其他第三方供應商可能依據使用者造訪本站或其他網站的紀錄，透過 Cookie 提供廣告；啟用前將更新此政策並完成適用的同意管理設定。</p>
@@ -715,7 +721,9 @@ function ContactPage() {
 
 export default function App({ pathname = typeof window === "undefined" ? "/" : window.location.pathname }) {
   const path = pathname.replace(/^\//, "").replace(/\/$/, "");
-  if (path === "" || path === "index.html") return <HomePage />;
+  if (path === "" || path === "index.html") return <PageShell><DailyDashboard /></PageShell>;
+  if (path === "diagnosis") return <HomePage />;
+  if (path === "planning") return <PageShell><PlanningWorkspace /></PageShell>;
   if (path === "articles" || path === "blog") return <BlogIndexPage />;
   if (path === "about") return <AboutPage />;
   if (path === "privacy-policy") return <PrivacyPolicyPage />;
