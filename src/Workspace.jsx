@@ -136,7 +136,7 @@ export function DailyDashboard() {
           }
           note={
             r.fixedExpense > 0
-              ? `以緊急預備金支應目前固定支出，建議維持 ${r.recommendedRunwayMonths} 個月。`
+              ? `緊急預備金可支付目前固定支出，建議維持 ${r.recommendedRunwayMonths} 個月。`
               : "支出為零時無法估算，請先確認必要開銷。"
           }
         />
@@ -710,15 +710,19 @@ export function PlanningWorkspace() {
                 note="投資資產減目標資產；達標不代表終身不會耗盡。"
               />
               <Metric
-                title="累積未支應支出"
+                title="累計支出缺口"
                 value={money(result.totalShortfall)}
                 note={
                   result.firstShortfall
-                    ? `${result.firstShortfall} 起出現不足，需調整收入、支出或退休時間。`
-                    : "在這組假設與推估期間內，現金和投資足以支應支出。"
+                    ? `${result.firstShortfall} 起首次出現資金不足；此金額為整段規劃期間的累計支出缺口。`
+                    : "在這組假設與推估期間內，收入、現金與投資足以支付設定的支出。"
                 }
               />
             </div>
+            <p className="muted">
+              支出缺口：當月收入、現金與可提領的投資仍不足以支付支出的差額。
+              累計支出缺口為整段規劃期間各月缺口的加總，包含通膨影響，未折算成今日價值，不代表現在需要補入的金額。
+            </p>
             <ProjectionChart result={result} />
             <h3>報酬敏感度</h3>
             <div className="os-table-wrap">
@@ -728,7 +732,7 @@ export function PlanningWorkspace() {
                     <th>情境</th>
                     <th>年報酬</th>
                     <th>退休投資資產</th>
-                    <th>未支應支出</th>
+                    <th>累計支出缺口</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -760,7 +764,7 @@ export function PlanningWorkspace() {
                       <th>模擬提領</th>
                       <th>現金</th>
                       <th>投資</th>
-                      <th>未支應</th>
+                      <th>當月支出缺口</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -817,7 +821,7 @@ export function PlanningWorkspace() {
                   <th>退休年齡</th>
                   <th>退休投資</th>
                   <th>目標差距</th>
-                  <th>未支應</th>
+                  <th>累計支出缺口</th>
                   <th>操作</th>
                 </tr>
               </thead>
