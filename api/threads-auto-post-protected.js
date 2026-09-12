@@ -1,3 +1,6 @@
+import { buildPublicFacts, renderPublicDraft, selectIntro, INTRODUCTIONS } from '../src/content-facts.js';
+import { routeModel } from '../src/model-routing.js';
+
 const websiteUrl = "https://finops-planner.vercel.app";
 
 const TOPICS = [
@@ -76,25 +79,6 @@ const CONTENT_FORMATS = [
     instruction:
       "用「試算後才發現」這類語氣開場，強調很多財務焦慮其實來自沒有看見現金流。自然帶到工具，但不要像硬廣告。",
   },
-];
-
-const OPENING_BANS = [
-  "三個提醒",
-  "三個關鍵",
-  "三個角度",
-  "三件事",
-  "三點",
-  "從這三點開始",
-  "你可以從以下三點開始",
-  "以下三個",
-  "3 個提醒",
-  "3 個關鍵",
-  "3 個角度",
-  "3 件事",
-  "第一、第二、第三",
-  "第一點",
-  "第二點",
-  "第三點",
 ];
 
 const REDIS_KEYS = {
@@ -193,10 +177,6 @@ function buildTrackingUrl(topic, variant, contentFormat) {
     `&utm_campaign=finops_growth` +
     `&utm_content=${encodeURIComponent(utmContent)}`
   );
-}
-
-function hasBannedPhrase(text = "") {
-  return OPENING_BANS.some((phrase) => text.includes(phrase));
 }
 
 async function redisCommand(command, args = []) {
@@ -324,111 +304,42 @@ async function refreshThreadsTokenIfNeeded(force = false) {
   };
 }
 
-async function generatePost({
-  topic,
-  variant,
-  trackingUrl,
-  contentFormat,
-  recentPosts = [],
-}) {
-  const style =
-    variant === "A"
-      ? "A版：偏生活感與共鳴，不要像教學文。可以從月光族、月底壓力、旅行預算、發薪日、信用卡帳單等情境切入。"
-      : "B版：偏專業但口語，不要像報告。可以從現金流、固定支出率、財務安全感、退休準備、資產配置等角度切入。";
-
-  const recentText = recentPosts
-    .slice(0, 5)
-    .map((post, index) => `${index + 1}. ${post.generatedText}`)
-    .join("\n\n");
-
-  const basePrompt = `
-你是 FinOps Planner Growth Agent，也是一位熟悉 Threads 社群經營的繁體中文內容策略顧問。
-
-請產出一篇適合 Threads 的繁體中文短文，用來推廣網站：
-${trackingUrl}
-
-今日主題：
-${topic.name}
-
-目標受眾：
-${topic.audience}
-
-今天必須自然帶入以下概念中的至少兩個：
-${topic.concepts.join("、")}
-
-A/B 測試版本：
-${style}
-
-今日貼文格式：
-${contentFormat.name}
-${contentFormat.instruction}
-
-最近幾篇貼文如下，請避免使用相同開頭、相同句型、相同段落邏輯：
-${recentText || "目前沒有可參考的近期貼文。"}
-
-內容要求：
-1. 使用繁體中文
-2. 口吻自然，像真實個人分享，不要太像廣告
-3. 180 到 280 字之間
-4. 開頭要有變化，可以是生活場景、問題、短句、感受、案例或觀點
-5. 不要每次都用條列式，不要固定寫成教學文
-6. 不要使用「三個提醒」、「三個關鍵」、「三個角度」、「三件事」、「從這三點開始」等句型
-7. 不要使用「第一、第二、第三」這種排序句型
-8. 不要用 Markdown 標題格式
-9. 不要使用過多 emoji，最多 1 個
-10. 結尾自然引導使用 FinOps Planner
-11. 最後一定要放上這個追蹤連結：${trackingUrl}
-12. 加上 3 到 5 個相關 hashtag
-
-禁止出現以下詞句：
-${OPENING_BANS.join("、")}
-`;
-
-  let lastText = "";
-
-  for (let attempt = 1; attempt <= 2; attempt++) {
-    const prompt =
-      attempt === 1
-        ? basePrompt
-        : `${basePrompt}
-
-上一版仍然太像固定教學貼文，請重新生成。這次務必避免「三點式」與「三個提醒」架構，開頭必須換成生活情境、提問、案例或個人觀點。`;
-
-    const response = await fetch("https://api.openai.com/v1/responses", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "gpt-4.1-mini",
-        input: prompt,
-        temperature: 0.9,
-      }),
+export async function generatePost({ trackingUrl = '', fetchImpl = fetch } = {}) {
+  // Only public defaults reach this flow. No request inputs or historical post text
+  // are sent to the model, which can only select a reviewed introduction key.
+  const facts = buildPublicFacts();
+  const routing = routeModel({ complexity: 'low', risk: 'low', uncertainty: 'low' }, {
+    stableModel: process.env.FINOPS_STABLE_MODEL,
+    strongModel: process.env.FINOPS_STRONG_MODEL,
+    highEndModel: process.env.FINOPS_HIGH_END_MODEL,
+  });
+  let selection = selectIntro('');
+  let usage = null;
+  let fallbackReason = null;
+  try {
+    const response = await fetchImpl('https://api.openai.com/v1/responses', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${process.env.OPENAI_API_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: routing.model, max_output_tokens: 32,
+        input: `Choose one introduction key for a Traditional Chinese cash flow example. Return only a key, no other text. Allowed choices: ${JSON.stringify(INTRODUCTIONS)}` }),
+      signal: AbortSignal.timeout(15000),
     });
-
-    if (!response.ok) {
-      const text = await response.text();
-      throw new Error(`OpenAI API failed: ${text}`);
-    }
-
+    if (!response.ok) throw new Error('generation-failed');
     const data = await response.json();
-
-    const text =
-      data.output_text || data.output?.[0]?.content?.[0]?.text || "";
-
-    if (!text) {
-      throw new Error("OpenAI did not return generated text.");
-    }
-
-    lastText = text.trim();
-
-    if (!hasBannedPhrase(lastText)) {
-      return lastText;
-    }
+    selection = selectIntro(data.output_text || data.output?.[0]?.content?.[0]?.text);
+    usage = Object.fromEntries(['input_tokens', 'output_tokens', 'total_tokens'].map(key => [key,
+      Number.isFinite(data.usage?.[key]) && data.usage[key] >= 0 ? data.usage[key] : null]));
+    if (!selection.accepted) fallbackReason = 'unapproved-introduction';
+  } catch {
+    fallbackReason = 'generation-unavailable';
   }
-
-  return lastText;
+  return {
+    generatedText: renderPublicDraft(facts, selection.key, trackingUrl),
+    generation: { routing, usage, source: facts.source, sourceVersion: facts.sourceVersion,
+      calculationVersion: facts.calculationVersion, contentVersion: facts.contentVersion,
+      publicInputs: facts.inputs, facts: facts.results, introductionKey: selection.key,
+      validation: selection.accepted ? 'allowlisted-intro' : 'deterministic-fallback', fallbackReason },
+  };
 }
 
 function sleep(ms) {
@@ -657,7 +568,7 @@ export default async function handler(req, res) {
 
     const recentPosts = await getRecentPosts();
 
-    const generatedText = await generatePost({
+    const { generatedText, generation } = await generatePost({
       topic,
       variant,
       trackingUrl,
@@ -674,6 +585,7 @@ export default async function handler(req, res) {
         contentFormat,
         trackingUrl,
         generatedText,
+        generation,
       });
     }
 
@@ -720,6 +632,7 @@ export default async function handler(req, res) {
       formatKey: contentFormat.key,
       trackingUrl,
       generatedText,
+      generation,
       containerId: publishResult.containerId,
       createdAt: new Date().toISOString(),
       status: "published",

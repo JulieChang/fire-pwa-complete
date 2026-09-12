@@ -285,7 +285,7 @@ export function calculatePlan(rawInputs) {
         }
       }
     } else {
-      allocationStrategyNote = "本月可分配金額為負，應優先檢查固定支出與貸款壓力。";
+      allocationStrategyNote = available === 0 ? "本月可分配金額為零，暫無新增投入餘額。" : "本月可分配金額為負，應優先檢查固定支出與貸款壓力。";
     }
     suggestedTravelTopUp = Math.floor(suggestedTravelTopUp);
     suggestedInvestment = Math.floor(suggestedInvestment);

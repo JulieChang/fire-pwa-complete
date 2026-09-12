@@ -5,6 +5,7 @@ import "./App.css";
 import { defaultInputs, calculatePlan, normalizeInputs, validateInputs, TAIWAN_OFFICIAL_SOURCE_NOTE } from "./finance.js";
 import { SITE_URL } from "./seo.js";
 import MethodologyContent from "./MethodologyContent.jsx";
+import {DailyDashboard,PlanningWorkspace} from "./Workspace.jsx";
 
 const isDev = typeof window !== "undefined" && window.location.search.includes("dev");
 const STORAGE_KEY = "finopsPlannerInputsV3";
@@ -48,7 +49,9 @@ function SiteHeader() {
     <header className="site-header">
       <a className="brand" href="/">Personal FinOps Planner</a>
       <nav className="site-nav">
-        <a href="/">財務診斷</a>
+        <a href="/">今日 Dashboard</a>
+        <a href="/planning">情境與 FIRE</a>
+        <a href="/diagnosis">完整診斷</a>
         <a href="/blog/monthly-saving-rate">存錢比例</a>
         <a href="/blog/cash-runway">現金水位</a>
         <a href="/blog/same-age-savings">同齡比較</a>
@@ -93,7 +96,7 @@ function PageShell({ children, className = "app" }) {
 }
 
 function HomeButton() {
-  return <a className="home-button" href="/">← 回到首頁使用財務診斷工具</a>;
+  return <a className="home-button" href="/diagnosis#calculator">← 回到完整財務診斷工具</a>;
 }
 
 function NumberInput({ label, value, onChange, suffix = "NTD", hint, tooltip, min = 0, max }) {
@@ -206,6 +209,7 @@ function HomePage() {
     setErrors(issues);
     if (issues.length) return;
     setCalculatedInputs(normalizeInputs(inputs));
+    try { window.localStorage.setItem("finopsCalculatedInputsV1", JSON.stringify(normalizeInputs(inputs))); } catch { /* browser storage may be unavailable */ }
     setHasCalculated(true);
     try { window.localStorage.setItem(STORAGE_KEY, JSON.stringify(inputs)); } catch { /* ignore */ }
     setTimeout(() => document.getElementById("diagnosis-report")?.scrollIntoView({ behavior: "smooth", block: "start" }), 80);
@@ -216,7 +220,7 @@ function HomePage() {
     setInputs(defaultInputs);
     setCalculatedInputs(defaultInputs);
     setHasCalculated(false);
-    try { window.localStorage.setItem(STORAGE_KEY, JSON.stringify(defaultInputs)); } catch { /* ignore */ }
+    try { window.localStorage.setItem(STORAGE_KEY, JSON.stringify(defaultInputs)); window.localStorage.setItem("finopsCalculatedInputsV1",JSON.stringify(defaultInputs)); } catch { /* ignore */ }
   };
 
   const result = useMemo(() => calculatePlan(calculatedInputs), [calculatedInputs]);
@@ -497,7 +501,7 @@ function HomePage() {
             <p><strong>長期自由進度 20 分</strong> = 目前財務自由進度 {result.scoreBreakdown.financialFreedomCurrent.toFixed(1)} / 10 + 退休時達成率 {result.scoreBreakdown.financialFreedomProjected.toFixed(1)} / 10。</p>
           </div>
           <p>
-            首頁「診斷報告預覽」會保留財務健康總分、現金流安全、流動資產階層與官方家庭財富分位；同齡收入倍數比較則放在完整報告中，作為退休規劃模型參考，而非官方排名。
+            本頁「診斷報告預覽」會保留財務健康總分、現金流安全、流動資產階層與官方家庭財富分位；同齡收入倍數比較則放在完整報告中，作為退休規劃模型參考，而非官方排名。
           </p>
         </div>
         <div className="metrics-grid">
@@ -541,7 +545,7 @@ function HomePage() {
           <p className="eyebrow">Step 3</p>
           <h2>本月資金分配建議</h2>
           <p>固定實領收入 {formatNTD(result.monthlyTotalIncome)} − 固定支出 {formatNTD(result.fixedExpense)} = 可分配 {formatNTD(result.available)}。獎金與其他年度收入待實際入帳後另行安排。</p>
-          <p className="muted">全年收入攤月為 {formatNTD(result.annualAverageMonthlyIncome)}，只作全年規劃參考。以下三個資金桶合計不超過本月可分配金額。</p>
+          <p className="muted">全年收入攤月為 {formatNTD(result.annualAverageMonthlyIncome)}，只作全年規劃參考。{result.available > 0 ? "以下三個資金桶合計不超過本月可分配金額。" : `本月無新增分配資金，現金流缺口 ${formatNTD(Math.max(0,-result.available))}。`}</p>
         </div>
         <div className="allocation-grid">
           <MetricCard title="建議補現金" value={formatNTD(result.suggestedCashTopUp)} note={`建議現金目標：${formatNTD(result.recommendedCashTarget)}，待補足：${formatNTD(Math.max(result.cashGap, 0))}`} tone={cashTone} />
@@ -637,7 +641,7 @@ function ArticlePage({ slug }) {
       <div className="cta-box">
         <h2>用 Personal FinOps Planner 試算你的財務位置</h2>
         <p>回到首頁輸入自己的收入、家庭責任、支出、資產與負債，產出你的現金安全水位、同齡比較、財務階層與財務自由進度。</p>
-        <a href="/" className="primary-button">免費開始財務診斷</a>
+        <a href="/diagnosis#calculator" className="primary-button">免費開始財務診斷</a>
       </div>
     </PageShell>
   );
@@ -669,7 +673,7 @@ function PrivacyPolicyPage() {
       <h2>一、我們收集的資訊</h2>
       <p>本網站主要提供財務試算與規劃工具。使用者在頁面中輸入的收入、支出、投資金額、旅遊預算等資料，主要用於即時計算與畫面呈現。本網站不會要求你提供身分證字號、銀行帳號、信用卡號等高度敏感個人資料。</p>
       <h2>二、瀏覽器本機儲存</h2>
-      <p>為了讓使用者下次開啟網站時可以保留前一次輸入的試算資料，本網站會將輸入內容儲存在使用者自己的瀏覽器 localStorage 中。試算由瀏覽器內的程式計算，這些欄位不會傳送到本站伺服器或 OpenAI。使用分享功能時，Threads 與 X 會收到文案中顯示的財務摘要；請確認內容後再分享。</p>
+      <p>為了讓使用者下次開啟網站時可以保留前一次輸入的試算資料，本網站會將輸入內容儲存在使用者自己的瀏覽器 localStorage 中。試算由瀏覽器內的程式計算，這些欄位不會傳送到本站伺服器或 OpenAI。情境規劃另保存使用者確認的方案、版本與月底實績；可在規劃頁匯出 JSON 備份，匯入需再次確認。使用分享功能時，Threads 與 X 會收到文案中顯示的財務摘要；請確認內容後再分享。</p>
       <h2>三、Cookie 與第三方服務</h2>
       <p>本網站使用 Google Analytics 分析造訪頁面、流量來源與裝置等資訊，Google 可能透過 Cookie 與線上識別碼處理使用資料。本站不將試算欄位、診斷分數或財務金額作為 Analytics 事件傳送。網站主機亦可能處理提供服務所需的連線紀錄。</p>
       <p>本版本只提供 Google AdSense 網站所有權驗證資訊，尚未載入廣告腳本或展示廣告。若後續啟用廣告，Google 與其他第三方供應商可能依據使用者造訪本站或其他網站的紀錄，透過 Cookie 提供廣告；啟用前將更新此政策並完成適用的同意管理設定。</p>
@@ -715,7 +719,9 @@ function ContactPage() {
 
 export default function App({ pathname = typeof window === "undefined" ? "/" : window.location.pathname }) {
   const path = pathname.replace(/^\//, "").replace(/\/$/, "");
-  if (path === "" || path === "index.html") return <HomePage />;
+  if (path === "" || path === "index.html") return <PageShell><DailyDashboard /></PageShell>;
+  if (path === "diagnosis") return <HomePage />;
+  if (path === "planning") return <PageShell><PlanningWorkspace /></PageShell>;
   if (path === "articles" || path === "blog") return <BlogIndexPage />;
   if (path === "about") return <AboutPage />;
   if (path === "privacy-policy") return <PrivacyPolicyPage />;

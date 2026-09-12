@@ -1,0 +1,244 @@
+.os-workspace {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 28px 0 48px;
+  color: #172b4d;
+}
+.os-heading {
+  padding: 24px 0;
+}
+.os-heading h1 {
+  font-size: clamp(1.8rem, 3vw, 2.7rem);
+  line-height: 1.3;
+  margin: 12px 0;
+  letter-spacing: -0.035em;
+}
+.os-heading p {
+  max-width: 780px;
+  color: #53637b;
+  line-height: 1.7;
+}
+.os-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+  margin: 24px 0;
+}
+.os-metric {
+  background: #fff;
+  border: 1px solid #dce4ed;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 5px 20px #14274705;
+}
+.os-metric p {
+  margin: 0 0 18px;
+  color: #53637b;
+  font-size: 0.95rem;
+}
+.os-metric strong {
+  display: block;
+  color: #173b67;
+  font-size: clamp(1.45rem, 2.2vw, 2rem);
+  overflow-wrap: anywhere;
+}
+.os-metric small {
+  display: block;
+  line-height: 1.65;
+  color: #64748b;
+  margin-top: 16px;
+}
+.os-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 20px 0;
+}
+.os-workspace button {
+  cursor: pointer;
+  padding: 10px 16px;
+  border: 1px solid #cbd5e1;
+  border-radius: 9px;
+  background: #fff;
+  color: #193b62;
+  font: inherit;
+}
+.os-workspace button.primary-button {
+  background: #1d4ed8;
+  color: white;
+  border-color: #1d4ed8;
+}
+.os-workspace button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+.os-workspace button:focus-visible,
+.os-workspace input:focus-visible,
+.os-workspace select:focus-visible,
+.os-workspace textarea:focus-visible,
+.os-workspace summary:focus-visible {
+  outline: 3px solid #60a5fa;
+  outline-offset: 3px;
+}
+.os-form-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+  margin: 20px 0;
+}
+.os-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 0.95rem;
+  color: #324663;
+}
+.os-field input,
+.os-field select,
+.os-workspace textarea,
+.os-table-wrap input {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  border: 1px solid #bac8da;
+  border-radius: 8px;
+  background: #fff;
+  padding: 11px 12px;
+  color: #172b4d;
+  font: inherit;
+}
+.os-field small {
+  color: #64748b;
+}
+.os-workspace details {
+  margin: 20px 0;
+}
+.os-workspace summary {
+  cursor: pointer;
+  font-weight: 600;
+  padding: 12px 0;
+}
+.os-workspace .section {
+  margin: 24px 0;
+}
+.os-workspace h2 {
+  font-size: 1.5rem;
+}
+.os-workspace h3 {
+  font-size: 1.15rem;
+}
+.os-workspace p {
+  line-height: 1.7;
+}
+.os-table-wrap {
+  max-width: 100%;
+  overflow-x: auto;
+  border: 1px solid #e0e6ed;
+  border-radius: 10px;
+}
+.os-table-wrap table {
+  border-collapse: collapse;
+  width: 100%;
+  min-width: 620px;
+  font-size: 0.9rem;
+}
+.os-table-wrap th,
+.os-table-wrap td {
+  text-align: left;
+  padding: 13px 15px;
+  border-bottom: 1px solid #e2e8f0;
+  white-space: nowrap;
+}
+.os-table-wrap thead {
+  background: #edf3f9;
+}
+.os-table-wrap small {
+  display: block;
+  white-space: normal;
+  max-width: 230px;
+  min-width: 150px;
+  font-weight: 400;
+  color: #64748b;
+  margin-top: 6px;
+}
+.os-table-wrap button {
+  margin: 3px;
+}
+.os-months {
+  max-height: 400px;
+}
+.os-months thead {
+  position: sticky;
+  top: 0;
+}
+.os-status {
+  background: #eff6ff;
+  border-left: 3px solid #2563eb;
+  padding: 12px 16px;
+  color: #244568;
+}
+.os-error {
+  background: #fff1f2;
+  color: #9f1239;
+  padding: 14px;
+  border-radius: 8px;
+}
+.os-json {
+  overflow: auto;
+  max-height: 320px;
+  background: #f8fafc;
+  padding: 18px;
+  font-size: 0.8rem;
+}
+.os-chart {
+  margin: 20px 0;
+}
+.os-chart svg {
+  width: 100%;
+  max-height: 240px;
+}
+.os-chart figcaption {
+  color: #64748b;
+  font-size: 0.85rem;
+}
+.os-workspace textarea {
+  line-height: 1.7;
+  resize: vertical;
+}
+.os-workspace .muted {
+  font-size: 0.9rem;
+  color: #64748b;
+}
+@media (max-width: 1000px) {
+  .os-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .os-form-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 600px) {
+  .os-workspace {
+    padding-top: 8px;
+  }
+  .os-metrics,
+  .os-form-grid {
+    grid-template-columns: 1fr;
+  }
+  .os-metric {
+    padding: 20px;
+  }
+  .os-workspace .section {
+    padding: 18px;
+  }
+  .os-heading {
+    padding: 12px 0;
+  }
+  .os-actions {
+    gap: 10px;
+  }
+  .os-heading h1 {
+    font-size: 1.85rem;
+  }
+}

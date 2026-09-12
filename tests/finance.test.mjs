@@ -57,3 +57,10 @@ test('validateInputs rejects inverted investment bounds', () => {
 
   assert.ok(errors.includes('每月最高投資不得低於最低投資。'));
 });
+
+test('zero monthly balance is distinguished from a deficit', () => {
+  const result = calculatePlan({...defaultInputs, monthlyIncome: 33000});
+  assert.equal(result.available, 0);
+  assert.match(result.allocationStrategyNote, /為零/);
+  assert.doesNotMatch(result.allocationStrategyNote, /為負/);
+});

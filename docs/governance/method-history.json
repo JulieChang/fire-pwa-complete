@@ -1,0 +1,6 @@
+{
+  "baseline": "V1 / 2026-09-11",
+  "releases": [
+    {"version":"1.2.0","date":"2026-09-12","previousVersion":"1.1.1","previousCommit":"00b8b50bd7385a037ca9979217d7a1d51248a3d8","reason":"Implement V1 daily dashboard, scenario planning and traceable grounded content","summary":"Separate /, /diagnosis and /planning; monthly events, inflation, configurable target withdrawal rate, shocks and local revisions/snapshots; factual draft guardrails","impact":["Homepage becomes four metrics; original diagnosis moves to /diagnosis","Static diagnosis formulas remain separately identified as finance-static-v1","Monthly model monthly-1.0.0 prioritizes reserves before investments and includes loan expiry, bonus timing, retirement expenses and simulated withdrawals","Monthly retirement target includes lifestyle spending inflation but excludes loan payments; loan payments remain in cash simulation","Personal financial inputs are never transmitted to an AI service","Legacy Threads cron retained outside V1; automatic content body now derived from reproducible public default facts"],"rollback":"Revert this release; existing diagnosis key remains unchanged. Export finopsOperatingSystemV1 before reverting; do not reinterpret monthly records under static formulas."}
+  ]
+}
